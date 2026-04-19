@@ -1,0 +1,126 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Tuple
+
+import cv2
+import numpy as np
+from ultralytics import YOLO
+
+
+@dataclass
+class DetectionItem:
+    label: str
+    confidence: float
+    bbox_xyxy: Tuple[int, int, int, int]
+    cropped_image: np.ndarray
+
+
+class MedicalDetector:
+    def __init__(
+        self, model_path: str, conf_threshold: float = 0.25, crop_padding_ratio: float = 0.02
+    ) -> None:
+        model_file = Path(model_path)
+        if not model_file.exists():
+            raise FileNotFoundError(f"Khong tim thay model tai: {model_file}")
+
+        self.model = YOLO(str(model_file))
+        self.conf_threshold = conf_threshold
+        self.crop_padding_ratio = crop_padding_ratio
+
+    def detect(self, image_bgr: np.ndarray) -> List[DetectionItem]:
+        if image_bgr is None or image_bgr.size == 0:
+            raise ValueError("Anh dau vao khong hop le.")
+
+        results = self.model.predict(image_bgr, conf=self.conf_threshold, verbose=False)
+        if not results:
+            return []
+
+        result = results[0]
+        boxes = result.boxes
+        names = result.names or {}
+        detections: List[DetectionItem] = []
+
+        if boxes is None:
+            return detections
+
+        for box in boxes:
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+            x1, y1, x2, y2 = self._add_padding(
+                int(x1), int(y1), int(x2), int(y2), image_bgr.shape, self.crop_padding_ratio
+            )
+            x1_i, y1_i, x2_i, y2_i = self._clamp_box(
+                x1, y1, x2, y2, image_bgr.shape
+            )
+
+            cropped_image = image_bgr[y1_i:y2_i, x1_i:x2_i]
+            if cropped_image.size == 0:
+                continue
+
+            cls_id = int(box.cls[0].item()) if box.cls is not None else -1
+            conf = float(box.conf[0].item()) if box.conf is not None else 0.0
+            label = str(names.get(cls_id, cls_id))
+
+            detections.append(
+                DetectionItem(
+                    label=label,
+                    confidence=conf,
+                    bbox_xyxy=(x1_i, y1_i, x2_i, y2_i),
+                    cropped_image=cropped_image,
+                )
+            )
+
+        return detections
+
+    @staticmethod
+    def decode_image_bytes(file_bytes: bytes) -> np.ndarray:
+        image_array = np.frombuffer(file_bytes, dtype=np.uint8)
+        image_bgr = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+        if image_bgr is None:
+            raise ValueError("Khong the decode anh. Hay kiem tra file upload.")
+        return image_bgr
+
+    @staticmethod
+    def _clamp_box(
+        x1: int, y1: int, x2: int, y2: int, image_shape: Tuple[int, int, int]
+    ) -> Tuple[int, int, int, int]:
+        h, w = image_shape[:2]
+        x1 = max(0, min(x1, w - 1))
+        y1 = max(0, min(y1, h - 1))
+        x2 = max(1, min(x2, w))
+        y2 = max(1, min(y2, h))
+
+        if x2 <= x1:
+            x2 = min(w, x1 + 1)
+        if y2 <= y1:
+            y2 = min(h, y1 + 1)
+        return x1, y1, x2, y2
+
+    @staticmethod
+    def _add_padding(
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
+        image_shape: Tuple[int, int, int],
+        padding_ratio: float,
+    ) -> Tuple[int, int, int, int]:
+        h, w = image_shape[:2]
+        box_w = max(1, x2 - x1)
+        box_h = max(1, y2 - y1)
+        pad_x = int(box_w * padding_ratio)
+        pad_y = int(box_h * padding_ratio)
+        # Keep some minimum padding to avoid clipping Vietnamese accents.
+        pad_x = max(pad_x, 4)
+        pad_y = max(pad_y, 4)
+
+        x1 = max(0, x1 - pad_x)
+        y1 = max(0, y1 - pad_y)
+        x2 = min(w, x2 + pad_x)
+        y2 = min(h, y2 + pad_y)
+        return x1, y1, x2, y2
+
+
+# Backward compatible alias for old imports.
+YoloDetector = MedicalDetector

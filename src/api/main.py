@@ -1,0 +1,147 @@
+from __future__ import annotations
+
+from collections import defaultdict
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from fastapi import FastAPI, File, HTTPException, UploadFile
+
+from src.core.detector import MedicalDetector
+from src.core.reader import MedicalReader
+from src.utils.yolo_debug import save_yolo_region_debug, should_save_yolo_debug
+
+app = FastAPI(
+    title="Project OCR API",
+    description="Upload image -> YOLOv11 segmentation -> Tesseract OCR",
+    version="1.1.0",
+)
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+YOLO_MODEL_PATH = PROJECT_ROOT / "models" / "weights" / "best.pt"
+TESSERACT_EXE = Path(r"D:\HK2_4\DoAn\OCR\tesseract.exe")
+YOLO_REGIONS_OUTPUT_DIR = PROJECT_ROOT / "outputs" / "yolo_regions"
+
+
+detector = MedicalDetector(model_path=str(YOLO_MODEL_PATH), conf_threshold=0.25)
+reader = MedicalReader(tesseract_cmd=str(TESSERACT_EXE), lang="vie")
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
+OUTPUT_CLASS_ORDER = [
+    "hospital_header",
+    "patient_info",
+    "diagnosis_block",
+    "test_table",
+    "footer_signature",
+]
+
+
+@app.get("/health")
+def health() -> Dict[str, Any]:
+    return {
+        "status": "ok",
+        "model_path": str(YOLO_MODEL_PATH),
+        "tesseract_path": str(TESSERACT_EXE),
+        "yolo_debug_dir": str(YOLO_REGIONS_OUTPUT_DIR),
+        "how_to_test_postman": {
+            "method": "POST",
+            "url": "/extract",
+            "body": "form-data",
+            "key": "file (type: File)",
+        },
+    }
+
+
+@app.post("/extract")
+async def extract_medical_info(file: UploadFile = File(...)) -> Dict[str, Any]:
+    filename = file.filename or "uploaded_file"
+    ext = Path(filename).suffix.lower()
+    if ext and ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Dinh dang file khong duoc ho tro. "
+                "Hay dung: .jpg, .jpeg, .png, .bmp, .tif, .tiff, .webp"
+            ),
+        )
+
+    try:
+        file_bytes = await file.read()
+        if not file_bytes:
+            raise ValueError("File rong. Hay chon mot anh hop le.")
+        image_bgr = MedicalDetector.decode_image_bytes(file_bytes)
+        detections = detector.detect(image_bgr)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Loi xu ly anh: {exc}") from exc
+
+    debug_output: Optional[Dict[str, str]] = None
+    if should_save_yolo_debug() and detections:
+        debug_output = save_yolo_region_debug(
+            image_bgr,
+            detections,
+            filename,
+            YOLO_REGIONS_OUTPUT_DIR,
+            PROJECT_ROOT,
+        )
+
+    results: List[Dict[str, Any]] = []
+    for item in detections:
+        text = reader.read_text(item.cropped_image, label=item.label)
+        results.append(
+            {
+                "label": item.label,
+                "confidence": round(item.confidence, 6),
+                "bbox_xyxy": list(item.bbox_xyxy),
+                "text": text,
+            }
+        )
+
+    result = _group_regions(results)
+    payload: Dict[str, Any] = {
+        "filename": filename,
+        "result": result,
+    }
+    if debug_output:
+        payload["debug_output"] = debug_output
+    return payload
+
+
+@app.post("/v1/ocr/upload")
+async def upload_and_ocr_alias(file: UploadFile = File(...)) -> Dict[str, Any]:
+    """Backward-compatible endpoint."""
+    return await extract_medical_info(file)
+
+
+def _group_regions(regions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for region in regions:
+        class_name = str(region.get("label", "")).strip()
+        if class_name:
+            groups[class_name].append(region)
+
+    output: Dict[str, Any] = {}
+    for class_name in OUTPUT_CLASS_ORDER:
+        items = groups.get(class_name, [])
+        items_sorted = sorted(
+            items,
+            key=lambda x: (
+                x.get("bbox_xyxy", [0, 0, 0, 0])[1],
+                x.get("bbox_xyxy", [0, 0, 0, 0])[0],
+            ),
+        )
+
+        merged_text = " ".join(
+            item.get("text", "").strip() for item in items_sorted if item.get("text", "").strip()
+        ).strip()
+        avg_conf = (
+            round(sum(float(item.get("confidence", 0.0)) for item in items_sorted) / len(items_sorted), 6)
+            if items_sorted
+            else 0.0
+        )
+
+        output[class_name] = {
+            "count": len(items_sorted),
+            "confidence_avg": avg_conf,
+            "text": merged_text,
+            "boxes": [item.get("bbox_xyxy", []) for item in items_sorted],
+        }
+
+    return output
