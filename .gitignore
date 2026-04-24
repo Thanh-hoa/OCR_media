@@ -7,3 +7,7 @@ venv/
 # Ảnh debug sinh ra khi chạy API (giữ thư mục qua .gitkeep)
 outputs/yolo_regions/*
 !outputs/yolo_regions/.gitkeep
+
+# Local documentation (không push)
+PROJECT_SUMMARY.md
+TECHNICAL_GUIDE.md
