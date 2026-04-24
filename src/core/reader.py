@@ -36,7 +36,6 @@ class MedicalReader:
         return self._normalize_text(text)
 
     def _build_config(self, label: Optional[str]) -> str:
-        # PSM 6: paragraph/table style blocks, PSM 7: short single text line.
         psm = 6 if label == "test_table" else 7
         return f"--oem {self.oem} --psm {psm} -c preserve_interword_spaces=1"
 
@@ -45,5 +44,4 @@ class MedicalReader:
         return " ".join(text.split()).strip()
 
 
-# Backward compatible alias for old imports.
 TesseractReader = MedicalReader

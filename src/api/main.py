@@ -7,13 +7,13 @@ from typing import Any, Dict, List, Optional
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from src.core.detector import MedicalDetector
-from src.core.reader import MedicalReader
+from src.core.reader_hybrid import HybridReader
 from src.utils.yolo_debug import save_yolo_region_debug, should_save_yolo_debug
 
 app = FastAPI(
     title="Project OCR API",
-    description="Upload image -> YOLOv11 segmentation -> Tesseract OCR",
-    version="1.1.0",
+    description="Upload image -> YOLOv11 detection -> Hybrid OCR",
+    version="2.0.0",
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -23,7 +23,7 @@ YOLO_REGIONS_OUTPUT_DIR = PROJECT_ROOT / "outputs" / "yolo_regions"
 
 
 detector = MedicalDetector(model_path=str(YOLO_MODEL_PATH), conf_threshold=0.25)
-reader = MedicalReader(tesseract_cmd=str(TESSERACT_EXE), lang="vie")
+reader = HybridReader(tesseract_cmd=str(TESSERACT_EXE), confidence_threshold=0.5)
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 OUTPUT_CLASS_ORDER = [
     "hospital_header",
@@ -43,15 +43,15 @@ def health() -> Dict[str, Any]:
         "yolo_debug_dir": str(YOLO_REGIONS_OUTPUT_DIR),
         "how_to_test_postman": {
             "method": "POST",
-            "url": "/extract",
+            "url": "/v1/ocr/upload",
             "body": "form-data",
             "key": "file (type: File)",
         },
     }
 
 
-@app.post("/extract")
-async def extract_medical_info(file: UploadFile = File(...)) -> Dict[str, Any]:
+@app.post("/v1/ocr/upload")
+async def upload_and_ocr(file: UploadFile = File(...)) -> Dict[str, Any]:
     filename = file.filename or "uploaded_file"
     ext = Path(filename).suffix.lower()
     if ext and ext not in ALLOWED_EXTENSIONS:
@@ -104,10 +104,7 @@ async def extract_medical_info(file: UploadFile = File(...)) -> Dict[str, Any]:
     return payload
 
 
-@app.post("/v1/ocr/upload")
-async def upload_and_ocr_alias(file: UploadFile = File(...)) -> Dict[str, Any]:
-    """Backward-compatible endpoint."""
-    return await extract_medical_info(file)
+
 
 
 def _group_regions(regions: List[Dict[str, Any]]) -> Dict[str, Any]:
