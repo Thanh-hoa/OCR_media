@@ -4,6 +4,10 @@ __pycache__/
 .venv/
 venv/
 
+# Environment variables (API keys, credentials)
+.env
+.env.local
+
 # Ảnh debug sinh ra khi chạy API (giữ thư mục qua .gitkeep)
 outputs/yolo_regions/*
 !outputs/yolo_regions/.gitkeep

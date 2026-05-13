@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import unicodedata
 from pathlib import Path
@@ -10,6 +11,7 @@ import numpy as np
 from paddleocr import PaddleOCR
 import pytesseract
 
+from src.core.gemini_validator import GeminiValidator
 from src.utils.image_processing import preprocess_for_ocr
 
 
@@ -20,15 +22,16 @@ class HybridReader:
         lang_paddle: str = "vi",
         lang_tesseract: str = "vie",
         confidence_threshold: float = 0.5,
+        enable_gemini_validation: bool = True,
     ) -> None:
         self.ocr_paddle = None
         self.lang_paddle = lang_paddle
-        
+
         exe_path = Path(tesseract_cmd)
         if not exe_path.exists():
             raise FileNotFoundError(f"Tesseract not found: {exe_path}")
         pytesseract.pytesseract.tesseract_cmd = str(exe_path)
-        
+
         self.lang_tesseract = lang_tesseract
         self.confidence_threshold = confidence_threshold
         self.oem = 3
@@ -40,6 +43,14 @@ class HybridReader:
             "test_table": 0.45,
             "footer_signature": 0.35,
         }
+
+        # Init Gemini validator (optional, nếu có API key)
+        self.gemini_validator = None
+        if enable_gemini_validation and os.getenv("GEMINI_API_KEY"):
+            try:
+                self.gemini_validator = GeminiValidator()
+            except ValueError:
+                pass  # API key not set, disable validation
 
     def _init_paddle(self) -> None:
         if self.ocr_paddle is None:
@@ -77,14 +88,26 @@ class HybridReader:
         if label == "test_table" and paddle_best_text:
             # For table regions, Paddle usually keeps structure better than Tesseract.
             if self._text_quality_score(paddle_best_text) + 15.0 >= self._text_quality_score(tesseract_best_text):
-                return paddle_best_text
+                final_text = paddle_best_text
+            else:
+                final_text = tesseract_best_text if tesseract_best_text else paddle_best_text
+        elif paddle_best_text and paddle_best_conf >= required_conf:
+            final_text = paddle_best_text
+        elif self._text_quality_score(tesseract_best_text) > self._text_quality_score(paddle_best_text):
+            final_text = tesseract_best_text
+        else:
+            final_text = paddle_best_text
 
-        if paddle_best_text and paddle_best_conf >= required_conf:
-            return paddle_best_text
+        # Validate & fix with Gemini (optional, nếu có API key)
+        if self.gemini_validator and final_text:
+            if label == "test_table":
+                final_text = self.gemini_validator.validate_table(image_bgr, final_text)
+            else:
+                final_text = self.gemini_validator.validate_text(
+                    image_bgr, final_text, label=label, fallback_text=final_text
+                )
 
-        if self._text_quality_score(tesseract_best_text) > self._text_quality_score(paddle_best_text):
-            return tesseract_best_text
-        return paddle_best_text
+        return final_text
 
     def _generate_candidates(self, image_bgr: np.ndarray, label: Optional[str]) -> list[np.ndarray]:
         candidates: list[np.ndarray] = []
@@ -154,6 +177,8 @@ class HybridReader:
             
             if label == "test_table":
                 full_text = self._format_table_rows(rows, image_bgr.shape[1])
+            elif label in {"hospital_header", "diagnosis_block"}:
+                full_text = self._format_two_column(rows, image_bgr.shape[1])
             else:
                 full_text = " ".join(texts)
             avg_confidence = sum(confidences) / len(confidences)
@@ -208,6 +233,27 @@ class HybridReader:
         ratio = valid_chars / max(1, len(text))
         long_tokens = sum(1 for token in text.split() if len(token) >= 2)
         return ratio * 100.0 + min(long_tokens, 50)
+
+    @staticmethod
+    def _format_two_column(rows: list[tuple[float, float, str, float]], image_width: int) -> str:
+        """Tách text của vùng có 2 cột (trái / phải) thay vì trộn lẫn theo Y.
+
+        Ví dụ hospital_header:
+          Cột trái  — tên bệnh viện, địa chỉ, SĐT
+          Cột phải  — PID, số bệnh phẩm, mã bệnh án
+
+        Ngưỡng phân cột: 55% chiều rộng ảnh crop để ưu tiên cột trái rộng hơn.
+        Output: "<left_text> | <right_text>" hoặc chỉ một cột nếu cột kia trống.
+        """
+        mid_x = image_width * 0.55
+        left_rows  = [(y, x, t) for y, x, t, _ in rows if x <= mid_x]
+        right_rows = [(y, x, t) for y, x, t, _ in rows if x > mid_x]
+
+        left_text  = " ".join(t for _, _, t in sorted(left_rows,  key=lambda r: r[0]))
+        right_text = " ".join(t for _, _, t in sorted(right_rows, key=lambda r: r[0]))
+
+        parts = [p.strip() for p in (left_text, right_text) if p.strip()]
+        return " | ".join(parts)
 
     @staticmethod
     def _format_table_rows(rows: list[tuple[float, float, str, float]], image_width: int) -> str:

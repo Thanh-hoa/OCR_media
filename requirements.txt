@@ -6,3 +6,5 @@ opencv-python
 pytesseract
 numpy
 paddleocr
+google-generativeai
+python-dotenv

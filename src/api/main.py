@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from src.core.detector import MedicalDetector
 from src.core.reader_hybrid import HybridReader
+from src.utils.image_processing import deskew_image
 from src.utils.yolo_debug import save_yolo_region_debug, should_save_yolo_debug
+
+# Load environment variables từ .env
+load_dotenv()
 
 app = FastAPI(
     title="Project OCR API",
@@ -33,14 +39,15 @@ OUTPUT_CLASS_ORDER = [
     "footer_signature",
 ]
 
-
 @app.get("/health")
 def health() -> Dict[str, Any]:
+    gemini_enabled = bool(os.getenv("GEMINI_API_KEY"))
     return {
         "status": "ok",
         "model_path": str(YOLO_MODEL_PATH),
         "tesseract_path": str(TESSERACT_EXE),
         "yolo_debug_dir": str(YOLO_REGIONS_OUTPUT_DIR),
+        "gemini_validation": "enabled" if gemini_enabled else "disabled (no GEMINI_API_KEY)",
         "how_to_test_postman": {
             "method": "POST",
             "url": "/v1/ocr/upload",
@@ -48,7 +55,6 @@ def health() -> Dict[str, Any]:
             "key": "file (type: File)",
         },
     }
-
 
 @app.post("/v1/ocr/upload")
 async def upload_and_ocr(file: UploadFile = File(...)) -> Dict[str, Any]:
@@ -58,19 +64,20 @@ async def upload_and_ocr(file: UploadFile = File(...)) -> Dict[str, Any]:
         raise HTTPException(
             status_code=400,
             detail=(
-                "Dinh dang file khong duoc ho tro. "
-                "Hay dung: .jpg, .jpeg, .png, .bmp, .tif, .tiff, .webp"
+                "Định dạng file không được hỗ trợ. "
+                "Hãy dùng: .jpg, .jpeg, .png, .bmp, .tif, .tiff, .webp"
             ),
         )
 
     try:
         file_bytes = await file.read()
         if not file_bytes:
-            raise ValueError("File rong. Hay chon mot anh hop le.")
+            raise ValueError("File rỗng. Hãy chọn một ảnh hợp lệ.")
         image_bgr = MedicalDetector.decode_image_bytes(file_bytes)
+        image_bgr = deskew_image(image_bgr)
         detections = detector.detect(image_bgr)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=400, detail=f"Loi xu ly anh: {exc}") from exc
+        raise HTTPException(status_code=400, detail=f"Lỗi xử lý ảnh: {exc}") from exc
 
     debug_output: Optional[Dict[str, str]] = None
     if should_save_yolo_debug() and detections:
@@ -102,10 +109,6 @@ async def upload_and_ocr(file: UploadFile = File(...)) -> Dict[str, Any]:
     if debug_output:
         payload["debug_output"] = debug_output
     return payload
-
-
-
-
 
 def _group_regions(regions: List[Dict[str, Any]]) -> Dict[str, Any]:
     groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)

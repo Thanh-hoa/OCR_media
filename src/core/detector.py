@@ -18,8 +18,6 @@ class DetectionItem:
 
 
 class MedicalDetector:
-    # Class name mapping for numbered labels (0-4)
-    # MUST match model.names order from training!
     CLASS_NAMES = {
         0: "diagnosis_block",
         1: "footer_signature",
@@ -33,81 +31,56 @@ class MedicalDetector:
     ) -> None:
         model_file = Path(model_path)
         if not model_file.exists():
-            raise FileNotFoundError(f"Khong tim thay model tai: {model_file}")
+            raise FileNotFoundError(f"Không tìm thấy mô hình tại: {model_file}")
 
-        print(f"\n[DEBUG] Loading model from: {model_file}")
-        print(f"[DEBUG] Model file size: {model_file.stat().st_size / 1024 / 1024:.2f} MB")
-        
         self.model = YOLO(str(model_file))
-        print(f"[DEBUG] Model loaded successfully!")
-        print(f"[DEBUG] Model task: {self.model.task}")
-        print(f"[DEBUG] Model classes: {self.model.names}")
-        print(f"[DEBUG] Using CLASS_NAMES mapping: {self.CLASS_NAMES}\n")
-        
         self.conf_threshold = conf_threshold
         self.crop_padding_ratio = crop_padding_ratio
 
     def detect(self, image_bgr: np.ndarray) -> List[DetectionItem]:
         if image_bgr is None or image_bgr.size == 0:
-            raise ValueError("Anh dau vao khong hop le.")
+            raise ValueError("Ảnh đầu vào không hợp lệ.")
 
-        print(f"\n[DEBUG] Running detection on image shape: {image_bgr.shape}")
-        print(f"[DEBUG] Confidence threshold: {self.conf_threshold}")
-        
         results = self.model.predict(image_bgr, conf=self.conf_threshold, verbose=False)
-        
-        print(f"[DEBUG] Prediction results count: {len(results)}")
-        
+
         if not results:
-            print("[DEBUG] No results returned!")
             return []
 
         result = results[0]
-        print(f"[DEBUG] Result has OBB: {result.obb is not None}")
-        print(f"[DEBUG] Result has boxes: {result.boxes is not None}")
-        
-        # Determine which bounding box format to use
-        if result.obb is not None:
-            # OBB format (Oriented Bounding Boxes)
+
+        use_obb = result.obb is not None
+        if use_obb:
             boxes_obj = result.obb
-            print(f"[DEBUG] Using OBB format - boxes count: {len(boxes_obj)}")
+            # xyxyxyxy: tensor (N, 4, 2) — 4 góc thực của từng OBB
+            obb_corners = result.obb.xyxyxyxy
         elif result.boxes is not None:
-            # Regular format
             boxes_obj = result.boxes
-            print(f"[DEBUG] Using regular XYXY format - boxes count: {len(boxes_obj)}")
+            obb_corners = None
         else:
-            print("[DEBUG] No boxes or OBB detected!")
             return []
 
-        names = result.names or {}
         detections: List[DetectionItem] = []
 
         for i, box in enumerate(boxes_obj):
-            # Extract coordinates
+            # bbox_xyxy dùng để trả về metadata trong JSON, không dùng để crop
             x1, y1, x2, y2 = box.xyxy[0].tolist()
-
-            # Test mode: keep raw YOLO bbox (no extra padding).
-            # Uncomment this block to re-enable padding after evaluating crop quality.
-            # x1, y1, x2, y2 = self._add_padding(
-            #     int(x1), int(y1), int(x2), int(y2), image_bgr.shape, self.crop_padding_ratio
-            # )
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             x1_i, y1_i, x2_i, y2_i = self._clamp_box(
-                x1, y1, x2, y2, image_bgr.shape
+                int(x1), int(y1), int(x2), int(y2), image_bgr.shape
             )
 
-            cropped_image = image_bgr[y1_i:y2_i, x1_i:x2_i]
-            if cropped_image.size == 0:
-                print(f"[DEBUG] Box {i}: Cropped image is empty, skipping")
+            if use_obb and obb_corners is not None:
+                # Crop theo 4 góc thực của OBB — không bị phình khi ảnh nghiêng
+                pts = obb_corners[i].cpu().numpy()  # (4, 2)
+                cropped_image = self._crop_obb_region(image_bgr, pts)
+            else:
+                cropped_image = image_bgr[y1_i:y2_i, x1_i:x2_i]
+
+            if cropped_image is None or cropped_image.size == 0:
                 continue
 
             cls_id = int(box.cls[0].item()) if box.cls is not None else -1
             conf = float(box.conf[0].item()) if box.conf is not None else 0.0
-            
-            # Map class ID to region name
             label = self.CLASS_NAMES.get(cls_id, f"unknown_{cls_id}")
-
-            print(f"[DEBUG] Box {i}: label={label} (cls_id={cls_id}), conf={conf:.3f}, bbox=({x1_i},{y1_i},{x2_i},{y2_i})")
 
             detections.append(
                 DetectionItem(
@@ -118,7 +91,6 @@ class MedicalDetector:
                 )
             )
 
-        print(f"[DEBUG] Total detections: {len(detections)}\n")
         return detections
 
     @staticmethod
@@ -126,8 +98,46 @@ class MedicalDetector:
         image_array = np.frombuffer(file_bytes, dtype=np.uint8)
         image_bgr = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
         if image_bgr is None:
-            raise ValueError("Khong the decode anh. Hay kiem tra file upload.")
+            raise ValueError("Không thể giải mã ảnh. Hãy kiểm tra tệp tải lên.")
         return image_bgr
+
+    @staticmethod
+    def _crop_obb_region(image_bgr: np.ndarray, pts: np.ndarray) -> np.ndarray:
+        """Crop vùng OBB bằng perspective transform.
+
+        Thay vì lấy axis-aligned XYXY (bị phình to khi doc nghiêng),
+        dùng 4 góc thực của OBB để warpPerspective ra ảnh chữ nhật thẳng.
+
+        pts: shape (4, 2) — 4 góc của OBB theo thứ tự bất kỳ từ YOLO.
+        """
+        h_img, w_img = image_bgr.shape[:2]
+        pts = pts.astype(np.float32)
+
+        # Clamp vào biên ảnh phòng YOLO trả tọa độ vượt ngoài
+        pts[:, 0] = np.clip(pts[:, 0], 0, w_img - 1)
+        pts[:, 1] = np.clip(pts[:, 1], 0, h_img - 1)
+
+        # Sắp xếp 4 góc: TL (sum nhỏ nhất), BR (sum lớn nhất),
+        #                  TR (diff nhỏ nhất), BL (diff lớn nhất)
+        s = pts.sum(axis=1)
+        d = np.diff(pts, axis=1).flatten()
+        tl = pts[np.argmin(s)]
+        br = pts[np.argmax(s)]
+        tr = pts[np.argmin(d)]
+        bl = pts[np.argmax(d)]
+        ordered = np.array([tl, tr, br, bl], dtype=np.float32)
+
+        w = int(max(np.linalg.norm(tr - tl), np.linalg.norm(br - bl)))
+        h = int(max(np.linalg.norm(br - tr), np.linalg.norm(bl - tl)))
+
+        if w <= 0 or h <= 0:
+            return np.zeros((1, 1, 3), dtype=np.uint8)
+
+        dst = np.array(
+            [[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]], dtype=np.float32
+        )
+        M = cv2.getPerspectiveTransform(ordered, dst)
+        return cv2.warpPerspective(image_bgr, M, (w, h), flags=cv2.INTER_CUBIC)
 
     @staticmethod
     def _clamp_box(
@@ -159,7 +169,6 @@ class MedicalDetector:
         box_h = max(1, y2 - y1)
         pad_x = int(box_w * padding_ratio)
         pad_y = int(box_h * padding_ratio)
-        # Keep some minimum padding to avoid clipping Vietnamese accents.
         pad_x = max(pad_x, 4)
         pad_y = max(pad_y, 4)
 
