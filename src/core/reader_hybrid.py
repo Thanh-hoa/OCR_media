@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import unicodedata
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -13,6 +14,8 @@ import pytesseract
 
 from src.core.gemini_validator import GeminiValidator
 from src.utils.image_processing import preprocess_for_ocr
+
+logger = logging.getLogger(__name__)
 
 
 class HybridReader:
@@ -49,8 +52,14 @@ class HybridReader:
         if enable_gemini_validation and os.getenv("GEMINI_API_KEY"):
             try:
                 self.gemini_validator = GeminiValidator()
-            except ValueError:
-                pass  # API key not set, disable validation
+                logger.info("GeminiValidator initialized successfully")
+            except ValueError as e:
+                logger.warning(f"GeminiValidator init failed: {e}")
+        else:
+            if not enable_gemini_validation:
+                logger.debug("Gemini validation disabled by parameter")
+            else:
+                logger.debug("GEMINI_API_KEY not set, skipping GeminiValidator")
 
     def _init_paddle(self) -> None:
         if self.ocr_paddle is None:
@@ -100,12 +109,17 @@ class HybridReader:
 
         # Validate & fix with Gemini (optional, nếu có API key)
         if self.gemini_validator and final_text:
+            logger.info(f"Calling Gemini validator for {label}...")
             if label == "test_table":
                 final_text = self.gemini_validator.validate_table(image_bgr, final_text)
             else:
                 final_text = self.gemini_validator.validate_text(
                     image_bgr, final_text, label=label, fallback_text=final_text
                 )
+            logger.info(f"Gemini validation done for {label}")
+        else:
+            if not self.gemini_validator:
+                logger.debug("Gemini validator not available")
 
         return final_text
 

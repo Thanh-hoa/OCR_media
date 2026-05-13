@@ -4,9 +4,12 @@ import base64
 import os
 from io import BytesIO
 from typing import Optional
+import logging
 
 import cv2
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiValidator:
@@ -60,9 +63,10 @@ class GeminiValidator:
                 ]
             )
             fixed_text = response.text.strip() if response.text else ocr_text
+            logger.info(f"Gemini validate_text ({label}): {len(ocr_text)} → {len(fixed_text)} chars")
             return fixed_text if fixed_text else fallback_text
-        except Exception:
-            # API fail → fallback Tesseract result
+        except Exception as e:
+            logger.error(f"Gemini validate_text ({label}) failed: {e}")
             return fallback_text if fallback_text else ocr_text
 
     def validate_table(self, crop_image: np.ndarray, ocr_text: str) -> str:
@@ -83,8 +87,11 @@ class GeminiValidator:
                     prompt,
                 ]
             )
-            return response.text.strip() if response.text else ocr_text
-        except Exception:
+            fixed_text = response.text.strip() if response.text else ocr_text
+            logger.info(f"Gemini validate_table: {len(ocr_text)} → {len(fixed_text)} chars")
+            return fixed_text
+        except Exception as e:
+            logger.error(f"Gemini validate_table failed: {e}")
             return ocr_text
 
     @staticmethod
