@@ -39,14 +39,6 @@ class HybridReader:
         self.confidence_threshold = confidence_threshold
         self.oem = 3
 
-        self.label_conf_threshold = {
-            "hospital_header": 0.55,
-            "patient_info": 0.5,
-            "diagnosis_block": 0.5,
-            "test_table": 0.45,
-            "footer_signature": 0.35,
-        }
-
         # Init Gemini validator (optional, nếu có API key)
         self.gemini_validator = None
         if enable_gemini_validation and os.getenv("GEMINI_API_KEY"):
@@ -69,90 +61,38 @@ class HybridReader:
         if image_bgr is None or image_bgr.size == 0:
             return ""
 
-        candidates = self._generate_candidates(image_bgr, label)
+        # Optimize: Use ONLY the best preprocessing (preprocess_for_ocr)
+        prep_image = preprocess_for_ocr(image_bgr, label=label)
 
-        paddle_best_text = ""
-        paddle_best_conf = 0.0
-        for candidate in candidates:
-            text_paddle, conf_paddle = self._read_paddle(candidate, label=label)
-            if self._is_better_candidate(
-                text_paddle,
-                conf_paddle,
-                paddle_best_text,
-                paddle_best_conf,
-            ):
-                paddle_best_text = text_paddle
-                paddle_best_conf = conf_paddle
+        # Step 1: Try PaddleOCR (primary, faster & more accurate)
+        text_paddle, conf_paddle = self._read_paddle(prep_image, label=label)
+        logger.debug(f"PaddleOCR ({label}): conf={conf_paddle:.3f}, len={len(text_paddle)}")
 
-        tesseract_best_text = ""
-        tesseract_best_score = -1.0
-        for candidate in candidates:
-            text_tesseract = self._read_tesseract(candidate, label)
-            score = self._text_quality_score(text_tesseract)
-            if score > tesseract_best_score:
-                tesseract_best_text = text_tesseract
-                tesseract_best_score = score
-
-        required_conf = self.label_conf_threshold.get(label or "", self.confidence_threshold)
-        if label == "test_table" and paddle_best_text:
-            # For table regions, Paddle usually keeps structure better than Tesseract.
-            if self._text_quality_score(paddle_best_text) + 15.0 >= self._text_quality_score(tesseract_best_text):
-                final_text = paddle_best_text
-            else:
-                final_text = tesseract_best_text if tesseract_best_text else paddle_best_text
-        elif paddle_best_text and paddle_best_conf >= required_conf:
-            final_text = paddle_best_text
-        elif self._text_quality_score(tesseract_best_text) > self._text_quality_score(paddle_best_text):
-            final_text = tesseract_best_text
+        # Step 2: Fallback to Tesseract ONLY if PaddleOCR fails
+        if not text_paddle or conf_paddle < 0.3:
+            logger.debug(f"PaddleOCR confidence too low ({conf_paddle}), trying Tesseract...")
+            text_tesseract = self._read_tesseract(prep_image, label)
+            final_text = text_tesseract if text_tesseract else text_paddle
         else:
-            final_text = paddle_best_text
+            final_text = text_paddle
 
-        # Validate & fix with Gemini (optional, nếu có API key)
+        # Step 3: Validate & fix with Gemini for ALL regions (especially for noise cleanup)
         if self.gemini_validator and final_text:
-            logger.info(f"Calling Gemini validator for {label}...")
+            logger.debug(f"Calling Gemini validator for {label}...")
             if label == "test_table":
                 final_text = self.gemini_validator.validate_table(image_bgr, final_text)
             else:
+                # Use validate_text for other regions (with custom prompts)
                 final_text = self.gemini_validator.validate_text(
                     image_bgr, final_text, label=label, fallback_text=final_text
                 )
-            logger.info(f"Gemini validation done for {label}")
+            logger.info(f"Gemini fixed {label}: {len(text_paddle)} → {len(final_text)} chars")
         else:
             if not self.gemini_validator:
                 logger.debug("Gemini validator not available")
 
         return final_text
 
-    def _generate_candidates(self, image_bgr: np.ndarray, label: Optional[str]) -> list[np.ndarray]:
-        candidates: list[np.ndarray] = []
-
-        base = preprocess_for_ocr(image_bgr, label=label)
-        candidates.append(base)
-
-        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-        gray = cv2.resize(gray, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
-        gray = cv2.bilateralFilter(gray, d=7, sigmaColor=40, sigmaSpace=40)
-
-        clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8)).apply(gray)
-        _, otsu = cv2.threshold(clahe, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        candidates.append(otsu)
-
-        if label in {"hospital_header", "patient_info", "diagnosis_block", "footer_signature"}:
-            adaptive = cv2.adaptiveThreshold(
-                clahe,
-                255,
-                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY,
-                31,
-                10,
-            )
-            candidates.append(adaptive)
-
-        if label == "footer_signature":
-            inverted = cv2.bitwise_not(otsu)
-            candidates.append(inverted)
-
-        return candidates
 
     def _read_paddle(self, image_bgr: np.ndarray, label: Optional[str] = None) -> tuple[str, float]:
         self._init_paddle()
@@ -221,32 +161,7 @@ class HybridReader:
         psm = psm_map.get(label, 6)
         return f"--oem {self.oem} --psm {psm} -c preserve_interword_spaces=1"
 
-    def _is_better_candidate(
-        self,
-        new_text: str,
-        new_conf: float,
-        old_text: str,
-        old_conf: float,
-    ) -> bool:
-        if not new_text:
-            return False
-        if not old_text:
-            return True
-        if new_conf > old_conf + 1e-9:
-            return True
-        if abs(new_conf - old_conf) <= 1e-9:
-            return self._text_quality_score(new_text) > self._text_quality_score(old_text)
-        return False
 
-    @staticmethod
-    def _text_quality_score(text: str) -> float:
-        if not text:
-            return 0.0
-
-        valid_chars = sum(ch.isalnum() or ch.isspace() or ch in "-/:.,()%" for ch in text)
-        ratio = valid_chars / max(1, len(text))
-        long_tokens = sum(1 for token in text.split() if len(token) >= 2)
-        return ratio * 100.0 + min(long_tokens, 50)
 
     @staticmethod
     def _format_two_column(rows: list[tuple[float, float, str, float]], image_width: int) -> str:

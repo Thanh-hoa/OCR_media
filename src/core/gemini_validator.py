@@ -102,20 +102,88 @@ class GeminiValidator:
 
     @staticmethod
     def _build_prompt(ocr_text: str, label: Optional[str]) -> str:
-        """Build appropriate prompt based on label."""
+        """Build specialized prompt based on label to clean & fix OCR."""
+
+        if label == "hospital_header":
+            return """You are a medical document OCR corrector. This is the HEADER section of a medical document.
+
+OCR text to fix:
+""" + ocr_text + """
+
+TASK: Fix OCR errors and extract ONLY the hospital introduction information:
+- Hospital name
+- Address
+- Phone number
+
+REMOVE these noise patterns:
+- Strings like "PID:", "KHOA XÉT NGHI", "Số bệnh phẩm", "Mã bệnh án", "DT:" (these are labels, not values)
+- Random characters that don't make sense
+- Anything that's not the hospital info header
+
+Output format: Clean text with only hospital name, address, phone - NO EXTRA LABELS."""
+
+        if label == "patient_info":
+            return """You are a medical document OCR corrector. This is the PATIENT INFO section.
+
+OCR text to fix:
+""" + ocr_text + """
+
+TASK: Fix OCR errors and extract ONLY patient information:
+- Name (Họ tên)
+- Date of birth (Ngày sinh)
+- Gender (Giới tính)
+- Address (Địa chỉ)
+- Insurance number (Số thẻ BHYT)
+
+REMOVE these noise patterns:
+- Random characters before the patient data (like "SỐ TỰ 7 SN Ra NO NGÃ NA ÀAÃ /N 1TYXV 5) /VÌ ị")
+- Unknown symbols (ị, l, k, etc.) that appear as noise
+- Field labels - keep only VALUES
+
+Output format: Clean key-value pairs without noise."""
+
+        if label == "diagnosis_block":
+            return """You are a medical document OCR corrector. This is the DIAGNOSIS section.
+
+OCR text to fix:
+""" + ocr_text + """
+
+TASK: Fix OCR errors and extract diagnosis information:
+- Diagnosis (Chẩn đoán)
+- Clinical notes (Theo dõi...)
+- Department (Khoa/Phòng)
+- Sample info
+- Personnel names and times
+
+REMOVE:
+- Random prefix characters (like "3 ĐT TT ky SA SA l")
+- Garbled text
+- Symbols that are OCR artifacts
+
+Output: Clean diagnosis information."""
+
         if label == "test_table":
-            return (
-                "This is a medical test table. Fix OCR errors in this text, "
-                "preserving structure with | for columns and \\n for rows. "
-                "Output ONLY the corrected text:\n" + ocr_text
-            )
+            return """You are a medical document OCR corrector. This is a MEDICAL TEST RESULT TABLE.
 
-        if label in {"hospital_header", "patient_info"}:
-            return (
-                "This is medical document text. Fix OCR errors while preserving meaning. "
-                "Output ONLY the corrected text:\n" + ocr_text
-            )
+OCR text to fix:
+""" + ocr_text + """
 
-        return (
-            "Fix OCR errors in this text. Output ONLY the corrected text:\n" + ocr_text
-        )
+TASK: Fix OCR errors in table format:
+- Correct test names (TẾNXETNGHẸM → TÊN XÉT NGHIỆM, etc.)
+- Fix values that look garbled
+- Use | to separate columns and \\n for rows
+
+REMOVE:
+- Random prefix characters
+- Symbols like "Ð" that appear at start
+- Garbled text like "TKếrqui ieMmaMcMỦU"
+
+Output: Clean table format with correct test names and values."""
+
+        # Default for other labels
+        return """Fix OCR errors in this medical document text:
+
+""" + ocr_text + """
+
+Remove noise, garbled characters, and random symbols. Keep only meaningful text.
+Output ONLY the corrected text, NO explanation."""
