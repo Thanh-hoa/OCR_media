@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import threading
 import unicodedata
 import logging
 from pathlib import Path
@@ -28,6 +29,7 @@ class HybridReader:
         enable_gemini_validation: bool = True,
     ) -> None:
         self.ocr_paddle = None
+        self._paddle_lock = threading.Lock()
         self.lang_paddle = lang_paddle
 
         exe_path = Path(tesseract_cmd)
@@ -55,7 +57,25 @@ class HybridReader:
 
     def _init_paddle(self) -> None:
         if self.ocr_paddle is None:
-            self.ocr_paddle = PaddleOCR(use_angle_cls=True, lang=self.lang_paddle)
+            with self._paddle_lock:
+                if self.ocr_paddle is None:
+                    self.ocr_paddle = PaddleOCR(
+                        use_angle_cls=False,
+                        lang=self.lang_paddle,
+                        use_doc_orientation_classify=False,
+                        use_doc_unwarping=False,
+                    )
+
+    def read_ocr_only(self, image_bgr: np.ndarray, label: Optional[str] = None) -> str:
+        """Chạy OCR (PaddleOCR + Tesseract fallback) không gọi Gemini."""
+        if image_bgr is None or image_bgr.size == 0:
+            return ""
+        prep = preprocess_for_ocr(image_bgr, label=label)
+        text, conf = self._read_paddle(prep, label=label)
+        if not text or conf < 0.3:
+            fallback = self._read_tesseract(prep, label)
+            return fallback if fallback else text
+        return text
 
     def read_text(self, image_bgr: np.ndarray, label: Optional[str] = None) -> str:
         if image_bgr is None or image_bgr.size == 0:
@@ -89,7 +109,7 @@ class HybridReader:
             logger.info(f"Gemini fixed {label}: {len(text_paddle)} → {len(final_text)} chars")
         else:
             if not self.gemini_validator:
-                logger.debug("Gemini validator not available")
+                logger.warning("Gemini validator not available — trả về OCR thô (kiểm tra GEMINI_API_KEY)")
 
         return final_text
 
@@ -131,7 +151,12 @@ class HybridReader:
             
             if label == "test_table":
                 full_text = self._format_table_rows(rows, image_bgr.shape[1])
-            elif label in {"hospital_header", "diagnosis_block"}:
+            elif label == "hospital_header":
+                # Chỉ lấy cột trái (tên BV, địa chỉ, ĐT) — bỏ cột phải (PID, KHOA, Mã bệnh án)
+                mid_x = image_bgr.shape[1] * 0.55
+                left_rows = [(y, x, t, c) for y, x, t, c in rows if x <= mid_x]
+                full_text = " ".join(t for _, _, t, _ in sorted(left_rows, key=lambda r: r[0]))
+            elif label == "diagnosis_block":
                 full_text = self._format_two_column(rows, image_bgr.shape[1])
             else:
                 full_text = " ".join(texts)
@@ -232,6 +257,16 @@ class HybridReader:
 
         text = unicodedata.normalize("NFKC", text)
         text = re.sub(r"[\u200b\u200c\u200d\ufeff]", "", text)
+
+        # C\u1eaft b\u1ecf k\u00fd t\u1ef1 r\u00e1c tr\u01b0\u1edbc nh\u00e3n quan tr\u1ecdng (fallback khi Gemini kh\u00f4ng ch\u1ea1y)
+        if label == "patient_info":
+            m = re.search(r"H\u1ecd\s*t\u00ean\s*:", text)
+            if m:
+                text = text[m.start():]
+        elif label == "diagnosis_block":
+            m = re.search(r"Ch\u1ea9n\s*\u0111o\u00e1n\s*:", text)
+            if m:
+                text = text[m.start():]
 
         if label == "test_table":
             text = text.replace("\r", "\n")
