@@ -15,3 +15,4 @@ outputs/yolo_regions/*
 # Local documentation (không push)
 PROJECT_SUMMARY.md
 TECHNICAL_GUIDE.md
+docs

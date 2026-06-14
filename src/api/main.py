@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
+from src.core.data_parser import MedicalRecordParser
 from src.core.detector import MedicalDetector
 from src.core.reader_hybrid import HybridReader
 from src.utils.image_processing import deskew_image
@@ -40,6 +41,8 @@ TESSERACT_EXE = Path(r"D:\HK2_4\DoAn\OCR\tesseract.exe")
 
 detector = MedicalDetector(model_path=str(YOLO_MODEL_PATH), conf_threshold=0.25)
 reader = HybridReader(tesseract_cmd=str(TESSERACT_EXE), confidence_threshold=0.5)
+ocr_parser = MedicalRecordParser()
+
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 OUTPUT_CLASS_ORDER = [
     "hospital_header",
@@ -48,6 +51,7 @@ OUTPUT_CLASS_ORDER = [
     "test_table",
     "footer_signature",
 ]
+
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
@@ -66,6 +70,7 @@ def health() -> Dict[str, Any]:
             "key": "file (type: File)",
         },
     }
+
 
 @app.post("/v1/ocr/upload")
 async def upload_and_ocr(file: UploadFile = File(...)) -> Dict[str, Any]:
@@ -124,7 +129,15 @@ async def upload_and_ocr(file: UploadFile = File(...)) -> Dict[str, Any]:
 
     result = _group_regions(results)
     logger.info(f"OCR processing complete for {filename}")
-    return {"filename": filename, "result": result}
+
+    ocr_texts = {k: v.get("text") for k, v in result.items()}
+    try:
+        parsed = ocr_parser.parse(ocr_data=ocr_texts)
+    except Exception as exc:
+        logger.warning(f"Structured parse failed: {exc}")
+        parsed = None
+
+    return {"filename": filename, "result": result, "parsedData": parsed}
 
 def _group_regions(regions: List[Dict[str, Any]]) -> Dict[str, Any]:
     groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)

@@ -179,5 +179,4 @@ class MedicalDetector:
         return x1, y1, x2, y2
 
 
-# Backward compatible alias for old imports.
 YoloDetector = MedicalDetector
