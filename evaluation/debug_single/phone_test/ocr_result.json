@@ -11,83 +11,83 @@
   "detections": [
     {
       "label": "diagnosis_block",
-      "confidence": 0.909996,
+      "confidence": 0.898618,
       "bbox_xyxy": [
-        104,
-        612,
-        1800,
-        1040
+        0,
+        545,
+        1758,
+        979
       ],
       "crop_size": {
-        "width": 1677,
-        "height": 259
+        "width": 1767,
+        "height": 252
       },
       "crop_file": "evaluation\\debug_single\\phone_test\\diagnosis_block.jpg",
-      "text": "j8 CViii., j Số the B Fấn fiưng t) v ao. Chân đoán: Tỉ dt 79808933460 Quảng Ngãi khoa Phỏ Theo dõi nhiễm trùng: đẻ Người Vu: Nội tông hợp ng: đẻ nghị đối chiếu lâm sảng và h Ả À Người họ mẫu: KTX Phạm T sàng và chỉ định xét nghiệm bô sun khi cân. tỌ x ân mầu: R rung Đứ. ân cầU: BS chi đi :TV. Lê Văn R C Cơ sở yêu câu: BVTW ịa Chi định: BS. Vũ Ngọc Hiện Khoa Thời gian lầy mẫu: 02/04/2026 15:36 vi vẶ /iien Thời gian nhận mẫu: 02/04/2026 16:34 hi Tình trạng mẫu: Ón định Loại bệnh phẩm: Má h ân Phục,"
+      "text": "thẻ BHY (OOQ/U.a TT I0 Theo đõi thiều máu: ưu tiê tá lai đoán Ni ng hợp tên đánh giá lại sau điều trị hỗ trợ và bù dịch. Kho. TH: K.TV. Trần Thị Như Ý Cơ sơ yêu cầu: BVTW Người lây mẫu: KTYV. Trần Thị Như Ý Thời gian lấy mẫu: 21/03/2026 12:51 Người nhận mâu: hộ 7 0 lâi Nịng Thời gian nhận mẫu: 21/03/2026 13:13 gS chỉ định: BS. Nguyên Phi Nhật Trường Tình trạng mẫu: Ôn định Loại bệnh phâm: tuyết tượng Ẹ k TT ễ"
     },
     {
       "label": "footer_signature",
-      "confidence": 0.93598,
+      "confidence": 0.936267,
       "bbox_xyxy": [
-        1071,
-        1404,
-        1920,
-        1753
+        996,
+        1302,
+        1907,
+        1697
       ],
       "crop_size": {
-        "width": 829,
-        "height": 265
+        "width": 881,
+        "height": 261
       },
       "crop_file": "evaluation\\debug_single\\phone_test\\footer_signature.jpg",
-      "text": ""
+      "text": "hi SH mm"
     },
     {
       "label": "hospital_header",
-      "confidence": 0.903686,
+      "confidence": 0.898346,
       "bbox_xyxy": [
-        481,
-        211,
-        1728,
-        629
+        329,
+        142,
+        1654,
+        532
       ],
       "crop_size": {
-        "width": 1226,
-        "height": 231
+        "width": 1305,
+        "height": 260
       },
       "crop_file": "evaluation\\debug_single\\phone_test\\hospital_header.jpg",
-      "text": "PHI: 286669033 3 BỆNH VIỆN TRUNG ƯƠNG HUẾ: KHOA XÉT NGHIỆM HUYẾT HỌC Số bệnh pPhám: 79 Mã bệnh án: HN L6 Lê Lợi, Phường Vĩnh Ninh. Thành nhỏ Huế IDT: 0234.3638457 2"
+      "text": "BỆNH Vv P1: 8081091 8 TÊN TRUNG ƯƠNG HUẾ U KHOA Xx Số bệnh phàm: ÄI 1193 231318 ET NGHIỆM HUYẾƑT HỌC MÍã bệnh án: Hường Vình Ninh, Thành phó Huế DỊ: 0214.3569408"
     },
     {
       "label": "patient_info",
-      "confidence": 0.824112,
+      "confidence": 0.828754,
       "bbox_xyxy": [
-        75,
-        431,
-        1586,
-        892
+        0,
+        393,
+        1512,
+        789
       ],
       "crop_size": {
-        "width": 1503,
-        "height": 184
+        "width": 1517,
+        "height": 179
       },
       "crop_file": "evaluation\\debug_single\\phone_test\\patient_info.jpg",
-      "text": "IỆM XÉT NGH PHIẾU TRẢ KÉT QUÁ XÉ Giới tính: Nam Hộ tên: HOẬNG MÌNH LAN Ngày sinh: 24/09/1967 Địa Chị: Ƒ Trần Hưng Đạo. Phụ Vang, Quang Ngãi SỐ the BHYT: o2i 79808933460 Chân đoản: Theo đỖ/ nhzỄn"
+      "text": "tFH Á KẾn: PHAM GIA MY EU TRẢÁ K1 QUÁ XÉT NGHIỆM cm AV Ị cn nạ chỉ Ió8 Phạm tàn Động, Hương Trà, Quang cảịnh: 27/07/1990 Ciới tính: Nam ĐỀ ý BHYT: S6676527758416 p Trị số ủ Anán: Theo đồi thiêu mán: sẽ."
     },
     {
       "label": "test_table",
-      "confidence": 0.955608,
+      "confidence": 0.943154,
       "bbox_xyxy": [
-        74,
-        841,
-        1908,
-        1562
+        0,
+        731,
+        1920,
+        1538
       ],
       "crop_size": {
-        "width": 1800,
-        "height": 611
+        "width": 1870,
+        "height": 608
       },
       "crop_file": "evaluation\\debug_single\\phone_test\\test_table.jpg",
-      "text": "4 XS CÍ iiiiclli lÌI((, ẨN Ÿ V. LUC đii TNHUC Ộ mẫu: Ôn định ÔmHMMÁ 4 SH TivwErsemp KESUA TAE ƑT œm% Nhớ TT Tạp ÍL RDW: TT mm xxxx Ã YK. l"
+      "text": "BS chỉ định: D5. INGSHXYCH EI Nhật qf Lrường 1 tu ình trạng mẫu: Ôn định Loại bệnh pha ai bệnh phẩm: FiUYCtL tu ic E q A pm E3k S6.4 RBC% K/uL L"
     }
   ]
 }

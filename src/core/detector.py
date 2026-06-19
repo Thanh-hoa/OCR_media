@@ -27,7 +27,11 @@ class MedicalDetector:
     }
     
     def __init__(
-        self, model_path: str, conf_threshold: float = 0.25, crop_padding_ratio: float = 0.02
+        self,
+        model_path: str,
+        conf_threshold: float = 0.25,
+        crop_padding_ratio: float = 0.02,
+        imgsz: int = 640,
     ) -> None:
         model_file = Path(model_path)
         if not model_file.exists():
@@ -36,12 +40,18 @@ class MedicalDetector:
         self.model = YOLO(str(model_file))
         self.conf_threshold = conf_threshold
         self.crop_padding_ratio = crop_padding_ratio
+        self.imgsz = imgsz
 
     def detect(self, image_bgr: np.ndarray) -> List[DetectionItem]:
         if image_bgr is None or image_bgr.size == 0:
             raise ValueError("Ảnh đầu vào không hợp lệ.")
 
-        results = self.model.predict(image_bgr, conf=self.conf_threshold, verbose=False)
+        results = self.model.predict(
+            image_bgr,
+            conf=self.conf_threshold,
+            imgsz=self.imgsz,
+            verbose=False,
+        )
 
         if not results:
             return []

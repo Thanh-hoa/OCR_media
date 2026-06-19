@@ -29,6 +29,7 @@ class HybridReader:
         enable_gemini_validation: bool = True,
     ) -> None:
         self.ocr_paddle = None
+        self._paddle_unavailable = False
         self._paddle_lock = threading.Lock()
         self.lang_paddle = lang_paddle
 
@@ -78,6 +79,8 @@ class HybridReader:
         """Cấu hình 3: PaddleOCR + Tesseract fallback, không Gemini."""
         if image_bgr is None or image_bgr.size == 0:
             return ""
+        if label == "test_table":
+            return self._read_table_tesseract(image_bgr)
         prep = preprocess_for_ocr(image_bgr, label=label)
         text, conf = self._read_paddle(prep, label=label)
         if not text or conf < 0.3:
@@ -88,6 +91,12 @@ class HybridReader:
     def read_text(self, image_bgr: np.ndarray, label: Optional[str] = None) -> str:
         if image_bgr is None or image_bgr.size == 0:
             return ""
+
+        if label == "test_table":
+            final_text = self._read_table_tesseract(image_bgr)
+            if self.gemini_validator and final_text:
+                return self.gemini_validator.validate_table(image_bgr, final_text)
+            return final_text
 
         # Optimize: Use ONLY the best preprocessing (preprocess_for_ocr)
         prep_image = preprocess_for_ocr(image_bgr, label=label)
@@ -123,8 +132,10 @@ class HybridReader:
 
 
     def _read_paddle(self, image_bgr: np.ndarray, label: Optional[str] = None) -> tuple[str, float]:
-        self._init_paddle()
+        if self._paddle_unavailable:
+            return "", 0.0
         try:
+            self._init_paddle()
             result = self.ocr_paddle.ocr(image_bgr, cls=True)
             
             if not result or not result[0]:
@@ -173,6 +184,8 @@ class HybridReader:
             return self._normalize_text(full_text, label=label), avg_confidence
             
         except Exception as e:
+            self._paddle_unavailable = True
+            logger.warning("PaddleOCR failed for %s: %s", label, e)
             return "", 0.0
 
     def _read_tesseract(self, image_bgr: np.ndarray, label: Optional[str] = None) -> str:
@@ -182,6 +195,78 @@ class HybridReader:
             return self._normalize_text(text)
         except Exception as e:
             return ""
+
+    def _read_table_tesseract(self, image_bgr: np.ndarray) -> str:
+        try:
+            cleaned = self._preprocess_table_without_grid(image_bgr)
+            config = (
+                f"--oem {self.oem} --psm 11 "
+                "-c preserve_interword_spaces=1 "
+                "-c tessedit_char_blacklist=~`^_=[]{}<>"
+            )
+            text = pytesseract.image_to_string(
+                cleaned,
+                lang=self.lang_tesseract,
+                config=config,
+            )
+            return self._normalize_text(text, label="test_table")
+        except Exception as e:
+            logger.warning("Table OCR failed: %s", e)
+            return ""
+
+    @staticmethod
+    def _preprocess_table_without_grid(image_bgr: np.ndarray) -> np.ndarray:
+        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+        gray = cv2.resize(gray, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+        gray = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(gray)
+        gray = cv2.bilateralFilter(gray, d=5, sigmaColor=25, sigmaSpace=25)
+
+        binary_inv = cv2.adaptiveThreshold(
+            gray,
+            255,
+            cv2.ADAPTIVE_THRESH_MEAN_C,
+            cv2.THRESH_BINARY_INV,
+            31,
+            15,
+        )
+        h, w = binary_inv.shape
+        horizontal_kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (max(40, w // 28), 1)
+        )
+        vertical_kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (1, max(25, h // 28))
+        )
+        horizontal = cv2.morphologyEx(binary_inv, cv2.MORPH_OPEN, horizontal_kernel)
+        vertical = cv2.morphologyEx(binary_inv, cv2.MORPH_OPEN, vertical_kernel)
+        grid_mask = cv2.bitwise_or(horizontal, vertical)
+        grid_mask = cv2.dilate(
+            grid_mask,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2)),
+            iterations=1,
+        )
+
+        connected_grid = cv2.dilate(
+            grid_mask,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9)),
+            iterations=1,
+        )
+        contours, _ = cv2.findContours(
+            connected_grid, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        if contours:
+            contour = max(contours, key=cv2.contourArea)
+            x, y, bw, bh = cv2.boundingRect(contour)
+            pad_x = max(8, int(bw * 0.01))
+            pad_y = max(4, int(bh * 0.005))
+            x1 = max(0, x - pad_x)
+            y1 = max(0, y - pad_y)
+            x2 = min(w, x + bw + pad_x)
+            y2 = min(h, y + bh + pad_y)
+            gray = gray[y1:y2, x1:x2]
+            grid_mask = grid_mask[y1:y2, x1:x2]
+
+        cleaned = cv2.inpaint(gray, grid_mask, 3, cv2.INPAINT_TELEA)
+        return cv2.threshold(cleaned, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
     def _build_config(self, label: Optional[str]) -> str:
         psm_map = {
