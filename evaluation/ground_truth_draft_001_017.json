@@ -1,0 +1,291 @@
+[
+  {
+    "image": "sample_001.jpg",
+    "regions": {
+      "hospital_header": "BỆNH VIỆN TRUNG ƯƠNG HUẾ\nKHOA XÉT NGHIỆM HUYẾT HỌC\n16 Lê Lợi, Phường Vĩnh Ninh, Thành phố Huế\nĐT: 0234.3572892\nPID: 2534657613\nSố bệnh phẩm: 7965\nMã bệnh án: 2409968",
+      "patient_info": "Họ tên: PHẠM GIA BÌNH\nNgày sinh: 15/12/1960\nGiới tính: Nữ\nĐịa chỉ: 68 Phạm Văn Đồng, Hải Châu, Quảng Nam\nSố thẻ BHYT: 13959622933095",
+      "diagnosis_block": "Chẩn đoán: Theo dõi nhiễm trùng; đề nghị đối chiếu lâm sàng và chỉ định xét nghiệm bổ sung khi cần.\nKhoa/Phòng: Nội tổng hợp\nNgười lấy mẫu: KTV. Trần Thị Như Ý\nNgười nhận mẫu: KTV. Trần Thị Như Ý\nBS chỉ định: BS. Vũ Ngọc Hiền\nCơ sở yêu cầu: Khoa Nội\nThời gian lấy mẫu: 07/07/2025 12:16\nThời gian nhận mẫu: 07/07/2025 13:13\nTình trạng mẫu: Ổn định\nLoại bệnh phẩm: Huyết tương",
+      "test_table": "WBC | 8.7 | 4-10 | K/uL\nNEU% | 79.7 | 40-80 | %\nNEU# | 2.7 | 2-7.5 | K/uL\nLYM% | 20.0 | 10-50 | %\nLYM# | 3.6 | 1.5-4 | K/uL\nBASO% | 1.7 | 0-2.5 | %\nBASO# | 0.1 | 0-0.2 | K/uL\nMONO% | 5.0 | 0-12 | %\nMONO# | 0.6 | 0-1 | K/uL\nEOS% | 0.7 | 0-7 | %\nEOS# | 0.1 | 0-0.5 | K/uL\nRBC | 5.66 | 4-5.8 | M/uL\nHGB | 14.3 | 13-17 | g/dL\nHCT | 53.3 | 34-51 | %\nMCV | 92.0 | 85-95 | fL\nMCH | 31.2 | 28-32 | pg\nMCHC | 35.9 | 32-36 | g/dL\nRDWc | 13.2 | 11.6-14.8 | %\nNRBC% | 0.1 | 0-0.2 | %\nNRBC# | 0.00 | 0-0.01 | K/uL\nRDWs | 37.3 | 20-42 | fL\nPLT | 379 | 150-450 | K/uL\nMPV | 5.6 | 6-9 | fL",
+      "footer_signature": "Trưởng Khoa XN Huyết Học\nKHOA XÉT NGHIỆM HUYẾT HỌC\nCN. Trần Hoàng Long"
+    },
+    "fields": {
+      "hospital_name": "BỆNH VIỆN TRUNG ƯƠNG HUẾ",
+      "patient_name": "PHẠM GIA BÌNH",
+      "patient_dob": "1960-12-15",
+      "patient_gender": "Nữ",
+      "diagnosis": "Theo dõi nhiễm trùng; đề nghị đối chiếu lâm sàng và chỉ định xét nghiệm bổ sung khi cần."
+    }
+  },
+  {
+    "image": "sample_002.jpg",
+    "regions": {
+      "hospital_header": "BỆNH VIỆN TRUNG ƯƠNG HUẾ\nKHOA XÉT NGHIỆM HUYẾT HỌC\n16 Lê Lợi, Phường Vĩnh Ninh, Thành phố Huế\nĐT: 0234.3799776\nPID: 2805748101\nSố bệnh phẩm: 2195\nMã bệnh án: 231792010",
+      "patient_info": "Họ tên: BÙI THỊ AN\nNgày sinh: 06/11/1992\nGiới tính: Nữ\nĐịa chỉ: Lê Lợi, Đông Hà, Quảng Nam\nSố thẻ BHYT: 89360618224164",
+      "diagnosis_block": "Chẩn đoán: Theo dõi nhiễm trùng; cần theo dõi thêm chỉ số huyết học trong 24-48 giờ tiếp theo.\nKhoa/Phòng: Nội tổng hợp\nNgười lấy mẫu: KTV. Trần Thị Như Ý\nNgười nhận mẫu: KTV. Phạm Trung Đức\nBS chỉ định: BS. Lê Thị Minh Châu\nCơ sở yêu cầu: BVTW\nThời gian lấy mẫu: 25/09/2025 05:24\nThời gian nhận mẫu: 25/09/2025 05:52\nTình trạng mẫu: Không đông máu\nLoại bệnh phẩm: Huyết thanh",
+      "test_table": "WBC | 9.5 | 4-10 | K/uL\nNEU% | 85.9 | 40-80 | %\nNEU# | 1.3 | 2-7.5 | K/uL\nLYM% | 23.9 | 10-50 | %\nLYM# | 3.6 | 1.5-4 | K/uL\nBASO% | 0.9 | 0-2.5 | %\nBASO# | 0.2 | 0-0.2 | K/uL\nMONO% | 1.4 | 0-12 | %\nMONO# | 0.3 | 0-1 | K/uL\nEOS% | 3.7 | 0-7 | %\nEOS# | 0.5 | 0-0.5 | K/uL\nRBC | 4.89 | 4-5.8 | M/uL\nHGB | 13.2 | 13-17 | g/dL\nHCT | 36.8 | 34-51 | %\nMCV | 92.7 | 85-95 | fL\nMCH | 30.7 | 28-32 | pg\nMCHC | 31.4 | 32-36 | g/dL\nRDWc | 13.1 | 11.6-14.8 | %\nNRBC% | 0.0 | 0-0.2 | %\nNRBC# | 0.01 | 0-0.01 | K/uL\nRDWs | 40.1 | 20-42 | fL\nPLT | 276 | 150-450 | K/uL\nMPV | 7.2 | 6-9 | fL",
+      "footer_signature": "Trưởng Khoa XN Huyết Học\nKHOA XÉT NGHIỆM HUYẾT HỌC\nCN. Nguyễn Phi Nhật Trường"
+    },
+    "fields": {
+      "hospital_name": "BỆNH VIỆN TRUNG ƯƠNG HUẾ",
+      "patient_name": "BÙI THỊ AN",
+      "patient_dob": "1992-11-06",
+      "patient_gender": "Nữ",
+      "diagnosis": "Theo dõi nhiễm trùng; cần theo dõi thêm chỉ số huyết học trong 24-48 giờ tiếp theo."
+    }
+  },
+  {
+    "image": "sample_003.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: LÊ NGỌC NAM\nNăm sinh: 1978\nGiới tính: Nữ\nĐiện thoại: 0935926464\nĐịa chỉ: Phường Mỹ Phú, Tỉnh Đồng Tháp\nThẻ bảo hiểm y tế: QN 5 35 74 830 38832\nBác sĩ chỉ định: Đỗ Minh Tâm",
+      "diagnosis_block": "Chẩn đoán: Theo dõi đái tháo đường type 2\nBệnh phẩm: Máu tĩnh mạch\nMã bệnh nhân: 5185204\nNgày lấy mẫu: 06/02/2026",
+      "test_table": "Hóa sinh\nĐo hoạt độ ALT (GPT) [Máu] | 14.4 | 5-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 11.6 | 11-50 | U/L\nĐịnh lượng Glucose [Máu] | 5.2 | 4-6.5 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | \nAnti-HCV (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | \nHBsAg (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "06/02/2026\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Lê Văn Khoa"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "LÊ NGỌC NAM",
+      "patient_dob": "1978",
+      "patient_gender": "Nữ",
+      "diagnosis": "Theo dõi đái tháo đường type 2"
+    }
+  },
+  {
+    "image": "sample_004.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: BÙI THỊ ĐÔNG\nNăm sinh: 2005\nGiới tính: Nữ\nĐiện thoại: 0964292762\nĐịa chỉ: Phường 1, TP Sa Đéc, Tỉnh Tiền Giang\nThẻ bảo hiểm y tế: QN 2 91 54 790 35132\nBác sĩ chỉ định: Trần Văn Hồng",
+      "diagnosis_block": "Chẩn đoán: Theo dõi tăng men gan\nBệnh phẩm: Huyết tương\nMã bệnh nhân: 6890033\nNgày lấy mẫu: 10/06/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ AST (GOT) [Máu] | 46.7 | 9-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 18.8 | 11-50 | U/L\nĐịnh lượng Cholesterol toàn phần (máu) | 5.47 | 3.9-5.2 | mmol/L\nĐịnh lượng Creatinin (máu) | 69.9 | 62-120 | µmol/L\nĐịnh lượng Glucose [Máu] | 5.9 | 4-6.5 | mmol/L\nĐịnh lượng HbA1c [Máu] | 4.7 | 4.6-6.5 | %\nĐịnh lượng Triglycerid (máu) [Máu] | 1.88 | 0.46-1.7 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | \nAnti-HCV (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | \nHBsAg (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "10/06/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Trần Thu Trang"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "BÙI THỊ ĐÔNG",
+      "patient_dob": "2005",
+      "patient_gender": "Nữ",
+      "diagnosis": "Theo dõi tăng men gan"
+    }
+  },
+  {
+    "image": "sample_005.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: BÙI THANH NGÂN\nNăm sinh: 2004\nGiới tính: NAM\nĐiện thoại: 0970336840\nĐịa chỉ: Phường 1, TP Sa Đéc, Tỉnh Long An\nThẻ bảo hiểm y tế: GD 2 75 69 638 21111\nBác sĩ chỉ định: Phạm Hồng Nhung",
+      "diagnosis_block": "Chẩn đoán: Theo dõi rối loạn lipid máu\nBệnh phẩm: Máu tĩnh mạch\nMã bệnh nhân: 4116915\nNgày lấy mẫu: 04/10/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ AST (GOT) [Máu] | 44.6 | 9-40 | U/L\nĐịnh lượng LDL-C (Low density lipoprotein Cholesterol) [Máu] | 2.58 | 2.5-3.4 | mmol/L\nĐịnh lượng Triglycerid (máu) [Máu] | 0.37 | 0.46-1.7 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | ÂM TÍNH | ÂM TÍNH | \nAnti-HCV (nhanh) | DƯƠNG TÍNH | ÂM TÍNH | \nHBsAg (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "04/10/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Lê Văn Khoa"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "BÙI THANH NGÂN",
+      "patient_dob": "2004",
+      "patient_gender": "NAM",
+      "diagnosis": "Theo dõi rối loạn lipid máu"
+    }
+  },
+  {
+    "image": "sample_006.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: PHAN THỊ CƯỜNG\nNăm sinh: 1998\nGiới tính: NAM\nĐiện thoại: 0940643109\nĐịa chỉ: Xã Tân Thành Tây, Tỉnh Tiền Giang\nThẻ bảo hiểm y tế: HS 3 34 96 821 62501\nBác sĩ chỉ định: Lê Thị Mai",
+      "diagnosis_block": "Chẩn đoán: Theo dõi tăng men gan\nBệnh phẩm: Huyết tương\nMã bệnh nhân: 3725168\nNgày lấy mẫu: 13/08/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ ALT (GPT) [Máu] | 39.3 | 5-40 | U/L\nĐo hoạt độ AST (GOT) [Máu] | 28.0 | 9-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 57.5 | 11-50 | U/L\nĐịnh lượng Cholesterol toàn phần (máu) | 4.06 | 3.9-5.2 | mmol/L\nĐịnh lượng Creatinin (máu) | 116.5 | 62-120 | µmol/L\nĐịnh lượng Glucose [Máu] | 4.2 | 4-6.5 | mmol/L\nĐịnh lượng HDL-C (High density lipoprotein Cholesterol) [Máu] | 1.46 | 0.91-2.2 | mmol/L\nĐịnh lượng HbA1c [Máu] | 5.9 | 4.6-6.5 | %\nĐịnh lượng LDL-C (Low density lipoprotein Cholesterol) [Máu] | 2.72 | 2.5-3.4 | mmol/L\nĐịnh lượng Triglycerid (máu) [Máu] | 1.47 | 0.46-1.7 | mmol/L\nĐịnh lượng Urê máu [Máu] | 3.9 | 2.6-7.2 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | ÂM TÍNH | ÂM TÍNH | \nAnti-HCV (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | \nHBsAg (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "13/08/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Lê Văn Khoa"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "PHAN THỊ CƯỜNG",
+      "patient_dob": "1998",
+      "patient_gender": "NAM",
+      "diagnosis": "Theo dõi tăng men gan"
+    }
+  },
+  {
+    "image": "sample_007.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: PHAN THÀNH NGÂN\nNăm sinh: 1992\nGiới tính: Nữ\nĐiện thoại: 0919448431\nĐịa chỉ: Phường 2, TP Cao Lãnh, Tỉnh Tiền Giang\nThẻ bảo hiểm y tế: DN 2 68 11 983 89621\nBác sĩ chỉ định: Lê Thị Mai",
+      "diagnosis_block": "Chẩn đoán: Theo dõi chức năng thận\nBệnh phẩm: Máu tĩnh mạch\nMã bệnh nhân: 4396775\nNgày lấy mẫu: 10/08/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ ALT (GPT) [Máu] | 2.2 | 5-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 35.7 | 11-50 | U/L\nĐịnh lượng Cholesterol toàn phần (máu) | 4.05 | 3.9-5.2 | mmol/L\nĐịnh lượng Glucose [Máu] | 4.1 | 4-6.5 | mmol/L\nĐịnh lượng HbA1c [Máu] | 4.7 | 4.6-6.5 | %\nĐịnh lượng Triglycerid (máu) [Máu] | 1.53 | 0.46-1.7 | mmol/L\nĐịnh lượng Urê máu [Máu] | 6.7 | 2.6-7.2 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | ÂM TÍNH | ÂM TÍNH | \nAnti-HCV (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | \nHBsAg (nhanh) | ÂM TÍNH | ÂM TÍNH | ",
+      "footer_signature": "10/08/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Nguyễn Thị"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "PHAN THÀNH NGÂN",
+      "patient_dob": "1992",
+      "patient_gender": "Nữ",
+      "diagnosis": "Theo dõi chức năng thận"
+    }
+  },
+  {
+    "image": "sample_008.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: VÕ GIA HIỀN\nNăm sinh: 2001\nGiới tính: Nữ\nĐiện thoại: 0966253054\nĐịa chỉ: Xã Mỹ Trà, Tỉnh Tiền Giang\nThẻ bảo hiểm y tế: DN 1 37 27 707 57311\nBác sĩ chỉ định: Đỗ Minh Tâm",
+      "diagnosis_block": "Chẩn đoán: Theo dõi rối loạn lipid máu\nBệnh phẩm: Huyết tương\nMã bệnh nhân: 7692491\nNgày lấy mẫu: 23/11/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ ALT (GPT) [Máu] | 9.3 | 5-40 | U/L\nĐo hoạt độ AST (GOT) [Máu] | 30.1 | 9-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 35.2 | 11-50 | U/L\nĐịnh lượng Cholesterol toàn phần (máu) | 4.63 | 3.9-5.2 | mmol/L\nĐịnh lượng Creatinin (máu) | 105.8 | 62-120 | µmol/L\nĐịnh lượng Glucose [Máu] | 3.6 | 4-6.5 | mmol/L\nĐịnh lượng HDL-C (High density lipoprotein Cholesterol) [Máu] | 1.96 | 0.91-2.2 | mmol/L\nĐịnh lượng HbA1c [Máu] | 5.4 | 4.6-6.5 | %\nĐịnh lượng LDL-C (Low density lipoprotein Cholesterol) [Máu] | 2.53 | 2.5-3.4 | mmol/L\nĐịnh lượng Triglycerid (máu) [Máu] | 0.65 | 0.46-1.7 | mmol/L\nĐịnh lượng Urê máu [Máu] | 6.4 | 2.6-7.2 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | ÂM TÍNH | ÂM TÍNH | \nAnti-HCV (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | \nHBsAg (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "23/11/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Nguyễn Thị Ngọc Hiền"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "VÕ GIA HIỀN",
+      "patient_dob": "2001",
+      "patient_gender": "Nữ",
+      "diagnosis": "Theo dõi rối loạn lipid máu"
+    }
+  },
+  {
+    "image": "sample_009.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: VÕ GIA PHÚC\nNăm sinh: 1993\nGiới tính: NAM\nĐiện thoại: 0974190773\nĐịa chỉ: Phường 2, TP Cao Lãnh, Tỉnh Tiền Giang\nThẻ bảo hiểm y tế: GD 7 58 48 512 79093\nBác sĩ chỉ định: Trần Văn Hóa",
+      "diagnosis_block": "Chẩn đoán: Theo dõi tăng men gan\nBệnh phẩm: Máu tĩnh mạch\nMã bệnh nhân: 3160077\nNgày lấy mẫu: 07/11/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ AST (GOT) [Máu] | 16.8 | 9-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 5.4 | 11-50 | U/L\nĐịnh lượng Glucose [Máu] | 4.8 | 4-6.5 | mmol/L\nĐịnh lượng HDL-C (High density lipoprotein Cholesterol) [Máu] | 2.47 | 0.91-2.2 | mmol/L\nĐịnh lượng HbA1c [Máu] | 6.2 | 4.6-6.5 | %\nĐịnh lượng LDL-C (Low density lipoprotein Cholesterol) [Máu] | 2.60 | 2.5-3.4 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | DƯƠNG TÍNH | ÂM TÍNH | \nAnti-HCV (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | \nHBsAg (nhanh) | DƯƠNG TÍNH | ÂM TÍNH | ",
+      "footer_signature": "07/11/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Nguyễn Thị Ngọc Hiền"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "VÕ GIA PHÚC",
+      "patient_dob": "1993",
+      "patient_gender": "NAM",
+      "diagnosis": "Theo dõi tăng men gan"
+    }
+  },
+  {
+    "image": "sample_010.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: HUỲNH MINH AN\nNăm sinh: 2004\nGiới tính: Nữ\nĐiện thoại: 0991775997\nĐịa chỉ: Phường Mỹ Phú, Tỉnh Tiền Giang\nThẻ bảo hiểm y tế: DN 9 26 25 528 61247\nBác sĩ chỉ định: Nguyễn Quốc Bảo",
+      "diagnosis_block": "Chẩn đoán: Theo dõi tăng men gan\nBệnh phẩm: Huyết tương\nMã bệnh nhân: 4379369\nNgày lấy mẫu: 08/06/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 44.1 | 11-50 | U/L\nĐịnh lượng Glucose [Máu] | 5.1 | 4-6.5 | mmol/L\nĐịnh lượng Triglycerid (máu) [Máu] | 1.21 | 0.46-1.7 | mmol/L\nĐịnh lượng Urê máu [Máu] | 4.9 | 2.6-7.2 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | \nAnti-HCV (nhanh) | ÂM TÍNH | ÂM TÍNH | \nHBsAg (nhanh) | DƯƠNG TÍNH | ÂM TÍNH | ",
+      "footer_signature": "08/06/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Nguyễn Thị Ngọc Hiền"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "HUỲNH MINH AN",
+      "patient_dob": "2004",
+      "patient_gender": "Nữ",
+      "diagnosis": "Theo dõi tăng men gan"
+    }
+  },
+  {
+    "image": "sample_011.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: ĐỖ THỊ BÌNH\nNăm sinh: 1998\nGiới tính: Nữ\nĐiện thoại: 0961849625\nĐịa chỉ: Phường Mỹ Phú, Tỉnh Tiền Giang\nThẻ bảo hiểm y tế: GD 3 77 13 210 79522",
+      "diagnosis_block": "Chẩn đoán: Theo dõi chức năng thận\nBệnh phẩm: Máu tĩnh mạch\nMã bệnh nhân: 7561382\nNgày lấy mẫu: 06/01/2026",
+      "test_table": "Hóa sinh\nĐo hoạt độ AST (GOT) [Máu] | 29.1 | 9-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 4.2 | 11-50 | U/L\nĐịnh lượng Cholesterol toàn phần (máu) | 5.40 | 3.9-5.2 | mmol/L\nĐịnh lượng Creatinin (máu) | 129.1 | 62-120 | µmol/L\nĐịnh lượng Glucose [Máu] | 5.6 | 4-6.5 | mmol/L\nĐịnh lượng HDL-C (High density lipoprotein Cholesterol) [Máu] | 1.72 | 0.91-2.2 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | \nAnti-HCV (nhanh) | DƯƠNG TÍNH | ÂM TÍNH | \nHBsAg (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "06/01/2026\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Nguyễn Thị Ngọc Hiền"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "ĐỖ THỊ BÌNH",
+      "patient_dob": "1998",
+      "patient_gender": "Nữ",
+      "diagnosis": "Theo dõi chức năng thận"
+    }
+  },
+  {
+    "image": "sample_012.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: VÕ MINH BÌNH\nNăm sinh: 1998\nGiới tính: NAM\nĐiện thoại: 0948335065\nĐịa chỉ: Xã Tân Khánh Đông, Tỉnh Tiền Giang\nThẻ bảo hiểm y tế: GD 3 57 96 511 44394\nBác sĩ chỉ định: Lê Thị Mai",
+      "diagnosis_block": "Chẩn đoán: Tái khám định kỳ\nBệnh phẩm: Huyết tương\nMã bệnh nhân: 6900529\nNgày lấy mẫu: 03/05/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ ALT (GPT) [Máu] | 44.1 | 5-40 | U/L\nĐịnh lượng Glucose [Máu] | 4.0 | 4-6.5 | mmol/L\nĐịnh lượng HDL-C (High density lipoprotein Cholesterol) [Máu] | 1.17 | 0.91-2.2 | mmol/L\nĐịnh lượng LDL-C (Low density lipoprotein Cholesterol) [Máu] | 2.53 | 2.5-3.4 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | ÂM TÍNH | ÂM TÍNH | \nAnti-HCV (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | \nHBsAg (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "03/05/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Trần Thu Trang"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "VÕ MINH BÌNH",
+      "patient_dob": "1998",
+      "patient_gender": "NAM",
+      "diagnosis": "Tái khám định kỳ"
+    }
+  },
+  {
+    "image": "sample_013.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: HUỲNH THANH CƯỜNG\nNăm sinh: 1992\nGiới tính: NAM\nĐiện thoại: 0975727519\nĐịa chỉ: Xã Mỹ Trà, Tỉnh Long An\nThẻ bảo hiểm y tế: GD 1 69 24 236 73439\nBác sĩ chỉ định: Nguyễn Quốc Bảo",
+      "diagnosis_block": "Chẩn đoán: Theo dõi tăng men gan\nBệnh phẩm: Huyết thanh\nMã bệnh nhân: 4424812\nNgày lấy mẫu: 24/06/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ AST (GOT) [Máu] | 32.6 | 9-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 22.9 | 11-50 | U/L\nĐịnh lượng Cholesterol toàn phần (máu) | 5.08 | 3.9-5.2 | mmol/L\nĐịnh lượng Creatinin (máu) | 77.0 | 62-120 | µmol/L\nĐịnh lượng HDL-C (High density lipoprotein Cholesterol) [Máu] | 1.93 | 0.91-2.2 | mmol/L\nĐịnh lượng LDL-C (Low density lipoprotein Cholesterol) [Máu] | 2.94 | 2.5-3.4 | mmol/L\nĐịnh lượng Triglycerid (máu) [Máu] | 0.74 | 0.46-1.7 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | \nAnti-HCV (nhanh) | DƯƠNG TÍNH | ÂM TÍNH | \nHBsAg (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "24/06/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Lê Văn Khoa"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "HUỲNH THANH CƯỜNG",
+      "patient_dob": "1992",
+      "patient_gender": "NAM",
+      "diagnosis": "Theo dõi tăng men gan"
+    }
+  },
+  {
+    "image": "sample_014.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: PHAN THÀNH CƯỜNG\nNăm sinh: 1972\nGiới tính: NAM\nĐiện thoại: 0975727519\nĐịa chỉ: Xã Mỹ Trà, Tỉnh Long An\nThẻ bảo hiểm y tế: HS 1 69 24 236 73439\nBác sĩ chỉ định: Nguyễn Quốc Bảo",
+      "diagnosis_block": "Chẩn đoán: Theo dõi tăng men gan\nBệnh phẩm: Huyết thanh\nMã bệnh nhân: 4424812\nNgày lấy mẫu: 24/06/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ AST (GOT) [Máu] | 32.6 | 9-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 22.9 | 11-50 | U/L\nĐịnh lượng Cholesterol toàn phần (máu) | 5.08 | 3.9-5.2 | mmol/L\nĐịnh lượng Creatinin (máu) | 77.0 | 62-120 | µmol/L\nĐịnh lượng HDL-C (High density lipoprotein Cholesterol) [Máu] | 1.93 | 0.91-2.2 | mmol/L\nĐịnh lượng LDL-C (Low density lipoprotein Cholesterol) [Máu] | 2.94 | 2.5-3.4 | mmol/L\nĐịnh lượng Triglycerid (máu) [Máu] | 0.74 | 0.46-1.7 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | \nAnti-HCV (nhanh) | DƯƠNG TÍNH | ÂM TÍNH | \nHBsAg (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "24/06/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Lê Văn Khoa"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "PHAN THÀNH CƯỜNG",
+      "patient_dob": "1972",
+      "patient_gender": "NAM",
+      "diagnosis": "Theo dõi tăng men gan"
+    }
+  },
+  {
+    "image": "sample_015.jpg",
+    "regions": {
+      "hospital_header": "SỞ Y TẾ TỈNH ĐỒNG THÁP\nPHÒNG KHÁM ĐA KHOA THIÊN PHÚC\n646 Tổ 45 ấp Bình Hòa Đông, xã Đông Sơn, tỉnh Đồng Tháp\nSỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN: 0834.441.541",
+      "patient_info": "Họ tên: ĐẶNG MINH LINH\nNăm sinh: 1983\nGiới tính: NỮ\nĐiện thoại: 0938314478\nĐịa chỉ: Phường 1, TP Sa Đéc, Tỉnh Long An\nThẻ bảo hiểm y tế: QN 6 53 22 868 52355\nBác sĩ chỉ định: Nguyễn Quốc Bảo",
+      "diagnosis_block": "Chẩn đoán: Theo dõi chức năng thận\nBệnh phẩm: Máu tĩnh mạch\nMã bệnh nhân: 5459132\nNgày lấy mẫu: 18/11/2025",
+      "test_table": "Hóa sinh\nĐo hoạt độ ALT (GPT) [Máu] | 27.9 | 5-40 | U/L\nĐo hoạt độ AST (GOT) [Máu] | 6.2 | 9-40 | U/L\nĐo hoạt độ GGT (Gamma Glutamyl Transferase) [Máu] | 43.6 | 11-50 | U/L\nĐịnh lượng Cholesterol toàn phần (máu) | 4.19 | 3.9-5.2 | mmol/L\nĐịnh lượng Creatinin (máu) | 63.0 | 62-120 | µmol/L\nĐịnh lượng Glucose [Máu] | 5.2 | 4-6.5 | mmol/L\nĐịnh lượng HDL-C (High density lipoprotein Cholesterol) [Máu] | 2.03 | 0.91-2.2 | mmol/L\nĐịnh lượng HbA1c [Máu] | 5.5 | 4.6-6.5 | %\nĐịnh lượng LDL-C (Low density lipoprotein Cholesterol) [Máu] | 3.09 | 2.5-3.4 | mmol/L\nĐịnh lượng Triglycerid (máu) [Máu] | 1.55 | 0.46-1.7 | mmol/L\nĐịnh lượng Urê máu [Máu] | 7.7 | 2.6-7.2 | mmol/L\nMiễn dịch\nAnti HBs (nhanh) | DƯƠNG TÍNH | DƯƠNG TÍNH | \nAnti-HCV (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | \nHBsAg (nhanh) | ÂM TÍNH | DƯƠNG TÍNH | ",
+      "footer_signature": "18/11/2025\nPHÒNG XÉT NGHIỆM\n(Chữ ký)\nCNXN. Lê Văn Khoa"
+    },
+    "fields": {
+      "hospital_name": "SỞ Y TẾ TỈNH ĐỒNG THÁP",
+      "patient_name": "ĐẶNG MINH LINH",
+      "patient_dob": "1983",
+      "patient_gender": "NỮ",
+      "diagnosis": "Theo dõi chức năng thận"
+    }
+  },
+  {
+    "image": "sample_016.jpg",
+    "regions": {
+      "hospital_header": "BỆNH VIỆN TRUNG ƯƠNG HUẾ\nKHOA XÉT NGHIỆM HUYẾT HỌC\n16 Lê Lợi, Phường Vĩnh Ninh, Thành phố Huế\nĐT: 0234.3569408\nPID: 2804309128\nSố bệnh phẩm: 5150\nMã bệnh án: 2439321248",
+      "patient_info": "Họ tên: ĐỖ GIA MY\nNgày sinh: 27/07/1990\nGiới tính: Nam\nĐịa chỉ: 108 Phạm Văn Đồng, Hương Trà, Quảng Trị\nSố thẻ BHYT: 16676522758416",
+      "diagnosis_block": "Chẩn đoán: Sốt thiếu máu; ưu tiên đánh giá lại sau điều trị hỗ trợ và tái khám.\nKhoa/Phòng: Nội tổng hợp\nNgười lấy mẫu: KTV. Trần Thị Như Ý\nNgười nhận mẫu: KTV. Trần Thị Như Ý\nBS chỉ định: BS. Nguyễn Phi Nhật Trường\nCơ sở yêu cầu: BVTW\nThời gian lấy mẫu: 21/03/2026 12:51\nThời gian nhận mẫu: 21/03/2026 13:15\nTình trạng mẫu: Ổn định\nLoại bệnh phẩm: Huyết tương",
+      "test_table": "NEU% | 54.1 | 40-80 | %\nBASO% | 0.7 | 0-2.5 | %\nRBC | 5.71 | 4-5.8 | M/uL\nHCT | 31.9 | 34-51 | %\nMCV | 86.4 | 85-95 | fL\nRDWc | 14.1 | 11.6-14.8 | %\nNRBC% | 0.2 | 0-0.2 | %\nNRBC# | 0.01 | 0-0.01 | K/uL\nMPV | 9.3 | 6-9 | fL",
+      "footer_signature": "Trưởng Khoa XN Huyết Học\nKHOA XÉT NGHIỆM HUYẾT HỌC\nCN. Lê Thị Minh Châu"
+    },
+    "fields": {
+      "hospital_name": "BỆNH VIỆN TRUNG ƯƠNG HUẾ",
+      "patient_name": "ĐỖ GIA MY",
+      "patient_dob": "1990-07-27",
+      "patient_gender": "Nam",
+      "diagnosis": "Sốt thiếu máu; ưu tiên đánh giá lại sau điều trị hỗ trợ và tái khám."
+    }
+  },
+  {
+    "image": "sample_017.jpg",
+    "regions": {
+      "hospital_header": "BỆNH VIỆN TRUNG ƯƠNG HUẾ\nKHOA XÉT NGHIỆM HUYẾT HỌC\n16 Lê Lợi, Phường Vĩnh Ninh, Thành phố Huế\nĐT: 0234.3954951\nPID: 2359499094\nSố bệnh phẩm: 3034\nMã bệnh án: 2856307931",
+      "patient_info": "Họ tên: ĐỖ GIA HIẾU\nNgày sinh: 17/07/1966\nGiới tính: Nam\nĐịa chỉ: Phạm Văn Đồng, Hương Thủy, Quảng Bình\nSố thẻ BHYT: 418384249818",
+      "diagnosis_block": "Chẩn đoán: Theo dõi viêm; cần theo dõi thêm chỉ số huyết học trong 24-48 giờ tiếp theo.\nNgười lấy mẫu: KTV. Nguyễn Thị Thu Hiền\nNgười nhận mẫu: KTV. Nguyễn Thị Thu Hiền\nBS chỉ định: BS. Nguyễn Phi Nhật Trường\nCơ sở yêu cầu: BVTW\nThời gian lấy mẫu: 03/07/2025 03:13\nThời gian nhận mẫu: 03/07/2025 03:29\nTình trạng mẫu: Không đông máu\nLoại bệnh phẩm: Huyết tương",
+      "test_table": "WBC | 8.8 | 4-10 | K/uL\nMONO% | 5.4 | 0-12 | %\nEOS% | 1.1 | 0-7 | %\nHCT | 41.9 | 34-51 | %\nMCH | 28.6 | 28-32 | pg\nMCHC | 33.3 | 32-36 | g/dL\nRDWc | 12.7 | 11.6-14.8 | %\nNRBC% | 0.2 | 0-0.2 | %\nNRBC# | 0.00 | 0-0.01 | K/uL",
+      "footer_signature": "Trưởng Khoa XN Huyết Học\nKHOA XÉT NGHIỆM HUYẾT HỌC\nCN. Trần Hoàng Long"
+    },
+    "fields": {
+      "hospital_name": "BỆNH VIỆN TRUNG ƯƠNG HUẾ",
+      "patient_name": "ĐỖ GIA HIẾU",
+      "patient_dob": "1966-07-17",
+      "patient_gender": "Nam",
+      "diagnosis": "Theo dõi viêm; cần theo dõi thêm chỉ số huyết học trong 24-48 giờ tiếp theo."
+    }
+  }
+]

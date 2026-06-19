@@ -66,8 +66,16 @@ class HybridReader:
                         use_doc_unwarping=False,
                     )
 
+    def read_paddle_only(self, image_bgr: np.ndarray, label: Optional[str] = None) -> str:
+        """Cấu hình 2: PaddleOCR only, không fallback, không Gemini."""
+        if image_bgr is None or image_bgr.size == 0:
+            return ""
+        prep = preprocess_for_ocr(image_bgr, label=label)
+        text, _ = self._read_paddle(prep, label=label)
+        return text
+
     def read_ocr_only(self, image_bgr: np.ndarray, label: Optional[str] = None) -> str:
-        """Chạy OCR (PaddleOCR + Tesseract fallback) không gọi Gemini."""
+        """Cấu hình 3: PaddleOCR + Tesseract fallback, không Gemini."""
         if image_bgr is None or image_bgr.size == 0:
             return ""
         prep = preprocess_for_ocr(image_bgr, label=label)

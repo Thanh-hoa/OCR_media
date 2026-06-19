@@ -1,0 +1,19 @@
+[
+  {
+    "image": "sample_001.jpg",
+    "regions": {
+      "hospital_header": "BỆNH VIỆN ĐA KHOA TỈNH X\nĐịa chỉ: 123 Đường ABC, Quận 1, TP.HCM\nĐT: 0123456789",
+      "patient_info": "Họ tên: NGUYỄN VĂN AN\nNgày sinh: 15/05/1990\nGiới tính: Nam\nĐịa chỉ: 456 Đường DEF, Quận 2",
+      "diagnosis_block": "Chẩn đoán: Viêm phổi cấp\nKhoa: Nội tổng hợp\nBS chỉ định: Trần Thị B",
+      "test_table": "Glucose | 5.6 | mmol/L | 3.9-6.1\nHemoglobin | 130 | g/L | 120-160\nBạch cầu | 8.5 | G/L | 4.0-10.0",
+      "footer_signature": "Bác sĩ\nNGUYỄN THỊ B"
+    },
+    "fields": {
+      "patient_name": "NGUYỄN VĂN AN",
+      "patient_dob": "1990-05-15",
+      "patient_gender": "Nam",
+      "hospital_name": "BỆNH VIỆN ĐA KHOA TỈNH X",
+      "diagnosis": "Viêm phổi cấp"
+    }
+  }
+]

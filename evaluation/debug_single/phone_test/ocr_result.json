@@ -1,0 +1,93 @@
+{
+  "image": "phone_test.jpg",
+  "original_size": {
+    "width": 1920,
+    "height": 2560
+  },
+  "deskewed_size": {
+    "width": 1920,
+    "height": 2560
+  },
+  "detections": [
+    {
+      "label": "diagnosis_block",
+      "confidence": 0.909996,
+      "bbox_xyxy": [
+        104,
+        612,
+        1800,
+        1040
+      ],
+      "crop_size": {
+        "width": 1677,
+        "height": 259
+      },
+      "crop_file": "evaluation\\debug_single\\phone_test\\diagnosis_block.jpg",
+      "text": "j8 CViii., j Số the B Fấn fiưng t) v ao. Chân đoán: Tỉ dt 79808933460 Quảng Ngãi khoa Phỏ Theo dõi nhiễm trùng: đẻ Người Vu: Nội tông hợp ng: đẻ nghị đối chiếu lâm sảng và h Ả À Người họ mẫu: KTX Phạm T sàng và chỉ định xét nghiệm bô sun khi cân. tỌ x ân mầu: R rung Đứ. ân cầU: BS chi đi :TV. Lê Văn R C Cơ sở yêu câu: BVTW ịa Chi định: BS. Vũ Ngọc Hiện Khoa Thời gian lầy mẫu: 02/04/2026 15:36 vi vẶ /iien Thời gian nhận mẫu: 02/04/2026 16:34 hi Tình trạng mẫu: Ón định Loại bệnh phẩm: Má h ân Phục,"
+    },
+    {
+      "label": "footer_signature",
+      "confidence": 0.93598,
+      "bbox_xyxy": [
+        1071,
+        1404,
+        1920,
+        1753
+      ],
+      "crop_size": {
+        "width": 829,
+        "height": 265
+      },
+      "crop_file": "evaluation\\debug_single\\phone_test\\footer_signature.jpg",
+      "text": ""
+    },
+    {
+      "label": "hospital_header",
+      "confidence": 0.903686,
+      "bbox_xyxy": [
+        481,
+        211,
+        1728,
+        629
+      ],
+      "crop_size": {
+        "width": 1226,
+        "height": 231
+      },
+      "crop_file": "evaluation\\debug_single\\phone_test\\hospital_header.jpg",
+      "text": "PHI: 286669033 3 BỆNH VIỆN TRUNG ƯƠNG HUẾ: KHOA XÉT NGHIỆM HUYẾT HỌC Số bệnh pPhám: 79 Mã bệnh án: HN L6 Lê Lợi, Phường Vĩnh Ninh. Thành nhỏ Huế IDT: 0234.3638457 2"
+    },
+    {
+      "label": "patient_info",
+      "confidence": 0.824112,
+      "bbox_xyxy": [
+        75,
+        431,
+        1586,
+        892
+      ],
+      "crop_size": {
+        "width": 1503,
+        "height": 184
+      },
+      "crop_file": "evaluation\\debug_single\\phone_test\\patient_info.jpg",
+      "text": "IỆM XÉT NGH PHIẾU TRẢ KÉT QUÁ XÉ Giới tính: Nam Hộ tên: HOẬNG MÌNH LAN Ngày sinh: 24/09/1967 Địa Chị: Ƒ Trần Hưng Đạo. Phụ Vang, Quang Ngãi SỐ the BHYT: o2i 79808933460 Chân đoản: Theo đỖ/ nhzỄn"
+    },
+    {
+      "label": "test_table",
+      "confidence": 0.955608,
+      "bbox_xyxy": [
+        74,
+        841,
+        1908,
+        1562
+      ],
+      "crop_size": {
+        "width": 1800,
+        "height": 611
+      },
+      "crop_file": "evaluation\\debug_single\\phone_test\\test_table.jpg",
+      "text": "4 XS CÍ iiiiclli lÌI((, ẨN Ÿ V. LUC đii TNHUC Ộ mẫu: Ôn định ÔmHMMÁ 4 SH TivwErsemp KESUA TAE ƑT œm% Nhớ TT Tạp ÍL RDW: TT mm xxxx Ã YK. l"
+    }
+  ]
+}
