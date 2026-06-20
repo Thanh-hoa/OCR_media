@@ -17,8 +17,12 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import cv2
-import editdistance
 from dotenv import load_dotenv
+
+try:
+    import editdistance
+except ModuleNotFoundError:
+    editdistance = None
 
 # --- Path setup ---
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,7 +53,7 @@ def compute_cer(pred: str, ref: str) -> float:
     ref  = ref.strip()
     if not ref:
         return 0.0 if not pred else 1.0
-    return editdistance.eval(pred, ref) / len(ref)
+    return _edit_distance(pred, ref) / len(ref)
 
 
 def compute_wer(pred: str, ref: str) -> float:
@@ -58,7 +62,26 @@ def compute_wer(pred: str, ref: str) -> float:
     ref_words  = ref.strip().split()
     if not ref_words:
         return 0.0 if not pred_words else 1.0
-    return editdistance.eval(pred_words, ref_words) / len(ref_words)
+    return _edit_distance(pred_words, ref_words) / len(ref_words)
+
+
+def _edit_distance(a, b) -> int:
+    if editdistance is not None:
+        return editdistance.eval(a, b)
+
+    if len(a) < len(b):
+        a, b = b, a
+
+    previous = list(range(len(b) + 1))
+    for i, a_item in enumerate(a, start=1):
+        current = [i]
+        for j, b_item in enumerate(b, start=1):
+            insert_cost = current[j - 1] + 1
+            delete_cost = previous[j] + 1
+            replace_cost = previous[j - 1] + (a_item != b_item)
+            current.append(min(insert_cost, delete_cost, replace_cost))
+        previous = current
+    return previous[-1]
 
 
 def field_match(pred_val: Optional[str], gt_val: Optional[str]) -> bool:

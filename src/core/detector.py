@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
@@ -72,6 +72,10 @@ class MedicalDetector:
         detections: List[DetectionItem] = []
 
         for i, box in enumerate(boxes_obj):
+            cls_id = int(box.cls[0].item()) if box.cls is not None else -1
+            conf = float(box.conf[0].item()) if box.conf is not None else 0.0
+            label = self.CLASS_NAMES.get(cls_id, f"unknown_{cls_id}")
+
             # bbox_xyxy dùng để trả về metadata trong JSON, không dùng để crop
             x1, y1, x2, y2 = box.xyxy[0].tolist()
             x1_i, y1_i, x2_i, y2_i = self._clamp_box(
@@ -88,9 +92,9 @@ class MedicalDetector:
             if cropped_image is None or cropped_image.size == 0:
                 continue
 
-            cls_id = int(box.cls[0].item()) if box.cls is not None else -1
-            conf = float(box.conf[0].item()) if box.conf is not None else 0.0
-            label = self.CLASS_NAMES.get(cls_id, f"unknown_{cls_id}")
+            refined_crop = self._refine_crop(cropped_image, label)
+            if refined_crop is not None and refined_crop.size > 0:
+                cropped_image = refined_crop
 
             detections.append(
                 DetectionItem(
@@ -101,7 +105,7 @@ class MedicalDetector:
                 )
             )
 
-        return detections
+        return self._dedupe_detections(detections)
 
     @staticmethod
     def decode_image_bytes(file_bytes: bytes) -> np.ndarray:
@@ -148,6 +152,143 @@ class MedicalDetector:
         )
         M = cv2.getPerspectiveTransform(ordered, dst)
         return cv2.warpPerspective(image_bgr, M, (w, h), flags=cv2.INTER_CUBIC)
+
+    @classmethod
+    def _dedupe_detections(cls, detections: List[DetectionItem]) -> List[DetectionItem]:
+        """Keep the best logical region for each configured class."""
+        best_by_label: Dict[str, DetectionItem] = {}
+        unknown: List[DetectionItem] = []
+
+        for item in detections:
+            if item.label.startswith("unknown_"):
+                unknown.append(item)
+                continue
+
+            current = best_by_label.get(item.label)
+            if current is None:
+                best_by_label[item.label] = item
+                continue
+
+            if item.label == "test_table":
+                item_area = item.cropped_image.shape[0] * item.cropped_image.shape[1]
+                current_area = current.cropped_image.shape[0] * current.cropped_image.shape[1]
+                if item_area > current_area:
+                    best_by_label[item.label] = item
+            elif item.confidence > current.confidence:
+                best_by_label[item.label] = item
+
+        return list(best_by_label.values()) + unknown
+
+    @classmethod
+    def _refine_crop(cls, image_bgr: np.ndarray, label: str) -> np.ndarray:
+        if image_bgr is None or image_bgr.size == 0:
+            return image_bgr
+        if label == "test_table":
+            return cls._refine_table_crop(image_bgr)
+        if label in {
+            "hospital_header",
+            "patient_info",
+            "diagnosis_block",
+            "footer_signature",
+        }:
+            return cls._refine_text_block_crop(image_bgr)
+        return image_bgr
+
+    @staticmethod
+    def _refine_table_crop(image_bgr: np.ndarray) -> np.ndarray:
+        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+        gray = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(gray)
+        binary_inv = cv2.adaptiveThreshold(
+            gray,
+            255,
+            cv2.ADAPTIVE_THRESH_MEAN_C,
+            cv2.THRESH_BINARY_INV,
+            31,
+            15,
+        )
+
+        h, w = binary_inv.shape
+        horizontal_kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (max(30, w // 22), 1)
+        )
+        vertical_kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (1, max(20, h // 22))
+        )
+        horizontal = cv2.morphologyEx(binary_inv, cv2.MORPH_OPEN, horizontal_kernel)
+        vertical = cv2.morphologyEx(binary_inv, cv2.MORPH_OPEN, vertical_kernel)
+        grid_mask = cv2.bitwise_or(horizontal, vertical)
+        grid_mask = cv2.dilate(
+            grid_mask,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)),
+            iterations=2,
+        )
+
+        contours, _ = cv2.findContours(grid_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        candidates: list[tuple[int, int, int, int, float]] = []
+        min_area = w * h * 0.08
+        for cnt in contours:
+            x, y, bw, bh = cv2.boundingRect(cnt)
+            area = bw * bh
+            if area < min_area:
+                continue
+            if bw < w * 0.35 or bh < h * 0.25:
+                continue
+            candidates.append((x, y, bw, bh, float(area)))
+
+        if not candidates:
+            return image_bgr
+
+        x, y, bw, bh, _ = max(candidates, key=lambda item: item[4])
+        pad_x = max(8, int(bw * 0.015))
+        pad_y = max(6, int(bh * 0.015))
+        x1 = max(0, x - pad_x)
+        y1 = max(0, y - pad_y)
+        x2 = min(w, x + bw + pad_x)
+        y2 = min(h, y + bh + pad_y)
+        return image_bgr[y1:y2, x1:x2]
+
+    @staticmethod
+    def _refine_text_block_crop(image_bgr: np.ndarray) -> np.ndarray:
+        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (3, 3), 0)
+        _, binary_inv = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+        h, w = binary_inv.shape
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (max(12, w // 45), max(2, h // 180))
+        )
+        connected = cv2.dilate(binary_inv, kernel, iterations=1)
+        contours, _ = cv2.findContours(connected, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        boxes: list[tuple[int, int, int, int]] = []
+        min_area = max(20, int(w * h * 0.0002))
+        for cnt in contours:
+            x, y, bw, bh = cv2.boundingRect(cnt)
+            if bw * bh < min_area:
+                continue
+            if bw < 3 or bh < 3:
+                continue
+            boxes.append((x, y, x + bw, y + bh))
+
+        if not boxes:
+            return image_bgr
+
+        x1 = min(b[0] for b in boxes)
+        y1 = min(b[1] for b in boxes)
+        x2 = max(b[2] for b in boxes)
+        y2 = max(b[3] for b in boxes)
+
+        pad_x = max(8, int((x2 - x1) * 0.04))
+        pad_y = max(6, int((y2 - y1) * 0.12))
+        x1 = max(0, x1 - pad_x)
+        y1 = max(0, y1 - pad_y)
+        x2 = min(w, x2 + pad_x)
+        y2 = min(h, y2 + pad_y)
+
+        refined = image_bgr[y1:y2, x1:x2]
+        if refined.shape[0] < 12 or refined.shape[1] < 12:
+            return image_bgr
+        return refined
 
     @staticmethod
     def _clamp_box(

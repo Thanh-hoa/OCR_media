@@ -10,6 +10,10 @@ from typing import Optional
 
 import cv2
 import numpy as np
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
+os.environ.setdefault("PADDLE_PDX_CACHE_HOME", str(PROJECT_ROOT / ".paddlex_cache"))
 from paddleocr import PaddleOCR
 import pytesseract
 
@@ -174,9 +178,11 @@ class HybridReader:
                 # Chỉ lấy cột trái (tên BV, địa chỉ, ĐT) — bỏ cột phải (PID, KHOA, Mã bệnh án)
                 mid_x = image_bgr.shape[1] * 0.55
                 left_rows = [(y, x, t, c) for y, x, t, c in rows if x <= mid_x]
-                full_text = " ".join(t for _, _, t, _ in sorted(left_rows, key=lambda r: r[0]))
+                full_text = "\n".join(t for _, _, t, _ in sorted(left_rows, key=lambda r: r[0]))
             elif label == "diagnosis_block":
                 full_text = self._format_two_column(rows, image_bgr.shape[1])
+            elif label in {"patient_info", "footer_signature"}:
+                full_text = self._format_table_rows(rows, image_bgr.shape[1])
             else:
                 full_text = " ".join(texts)
             avg_confidence = sum(confidences) / len(confidences)
@@ -198,6 +204,10 @@ class HybridReader:
 
     def _read_table_tesseract(self, image_bgr: np.ndarray) -> str:
         try:
+            cell_text = self._read_table_by_grid(image_bgr)
+            if cell_text:
+                return self._normalize_text(cell_text, label="test_table")
+
             cleaned = self._preprocess_table_without_grid(image_bgr)
             config = (
                 f"--oem {self.oem} --psm 11 "
@@ -213,6 +223,184 @@ class HybridReader:
         except Exception as e:
             logger.warning("Table OCR failed: %s", e)
             return ""
+
+    def _read_table_by_grid(self, image_bgr: np.ndarray) -> str:
+        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+        scale = 2.0
+        gray = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+        gray = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(gray)
+        gray = cv2.bilateralFilter(gray, d=5, sigmaColor=25, sigmaSpace=25)
+
+        binary_inv = cv2.adaptiveThreshold(
+            gray,
+            255,
+            cv2.ADAPTIVE_THRESH_MEAN_C,
+            cv2.THRESH_BINARY_INV,
+            31,
+            15,
+        )
+        h, w = binary_inv.shape
+
+        horizontal_kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (max(20, w // 40), 1)
+        )
+        vertical_kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (1, max(20, h // 60))
+        )
+        horizontal = cv2.morphologyEx(binary_inv, cv2.MORPH_OPEN, horizontal_kernel)
+        vertical = cv2.morphologyEx(binary_inv, cv2.MORPH_OPEN, vertical_kernel)
+
+        xs = self._line_centers(vertical, axis="x", min_length=h * 0.08)
+        ys = self._line_centers(horizontal, axis="y", min_length=w * 0.20)
+        if len(xs) < 4 or len(ys) < 4:
+            return ""
+
+        xs = self._merge_positions(xs, max(8, int(w * 0.006)))
+        ys = self._merge_positions(ys, max(8, int(h * 0.006)))
+        if len(xs) < 4 or len(ys) < 4:
+            return ""
+
+        xs = self._select_table_columns(xs, w)
+        if len(xs) < 4:
+            return ""
+
+        grid_mask = cv2.bitwise_or(horizontal, vertical)
+        grid_mask = cv2.dilate(
+            grid_mask,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2)),
+            iterations=1,
+        )
+        cleaned = cv2.inpaint(gray, grid_mask, 3, cv2.INPAINT_TELEA)
+        cleaned = cv2.threshold(cleaned, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+        data = pytesseract.image_to_data(
+            cleaned,
+            lang=self.lang_tesseract,
+            config=(
+                f"--oem {self.oem} --psm 6 "
+                "-c preserve_interword_spaces=1 "
+                "-c tessedit_char_blacklist=~`^_=[]{}<>"
+            ),
+            output_type=pytesseract.Output.DICT,
+        )
+
+        cells: dict[tuple[int, int], list[tuple[int, str]]] = {}
+        n = len(data.get("text", []))
+        for i in range(n):
+            token = (data["text"][i] or "").strip()
+            if not token:
+                continue
+            try:
+                conf = float(data["conf"][i])
+            except (TypeError, ValueError):
+                conf = -1.0
+            if conf < 20:
+                continue
+
+            x = int(data["left"][i])
+            y = int(data["top"][i])
+            bw = int(data["width"][i])
+            bh = int(data["height"][i])
+            cx = x + bw / 2.0
+            cy = y + bh / 2.0
+
+            row_idx = self._interval_index(ys, cy)
+            col_idx = self._interval_index(xs, cx)
+            if row_idx is None or col_idx is None:
+                continue
+            cells.setdefault((row_idx, col_idx), []).append((x, token))
+
+        lines: list[str] = []
+        for row_idx in range(len(ys) - 1):
+            row_values: list[str] = []
+            for col_idx in range(len(xs) - 1):
+                tokens = cells.get((row_idx, col_idx), [])
+                text = " ".join(t for _, t in sorted(tokens, key=lambda item: item[0])).strip()
+                row_values.append(text)
+
+            if len(row_values) < 4:
+                continue
+
+            name = row_values[0]
+            value = row_values[1]
+            reference = row_values[2]
+            unit = row_values[3]
+
+            if not name or not re.search(r"\d", value):
+                continue
+            if len(name) <= 1 and not re.search(r"[A-Za-zÀ-ỹà-ỹĐđ]", name):
+                continue
+
+            lines.append(f"{name} | {value} | {unit} | {reference}")
+
+        return "\n".join(lines) if len(lines) >= 8 else ""
+
+    @staticmethod
+    def _line_centers(mask: np.ndarray, axis: str, min_length: float) -> list[int]:
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        centers: list[int] = []
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+            if axis == "x":
+                if h < min_length:
+                    continue
+                centers.append(x + w // 2)
+            else:
+                if w < min_length:
+                    continue
+                centers.append(y + h // 2)
+        return sorted(centers)
+
+    @staticmethod
+    def _merge_positions(values: list[int], tolerance: int) -> list[int]:
+        if not values:
+            return []
+        values = sorted(values)
+        groups: list[list[int]] = [[values[0]]]
+        for value in values[1:]:
+            if abs(value - groups[-1][-1]) <= tolerance:
+                groups[-1].append(value)
+            else:
+                groups.append([value])
+        return [int(round(sum(group) / len(group))) for group in groups]
+
+    @staticmethod
+    def _select_table_columns(xs: list[int], image_width: int) -> list[int]:
+        min_gap = max(20, int(image_width * 0.07))
+        separated: list[int] = []
+        for x in sorted(xs):
+            if not separated or x - separated[-1] >= min_gap:
+                separated.append(x)
+            elif abs(x - separated[-1]) < min_gap:
+                separated[-1] = int(round((separated[-1] + x) / 2))
+        xs = separated
+
+        if len(xs) <= 5:
+            return xs
+
+        best: list[int] = xs
+        best_score = -1.0
+        for start in range(0, len(xs) - 3):
+            candidate = xs[start : start + 5]
+            width = candidate[-1] - candidate[0]
+            if width < image_width * 0.55:
+                continue
+            gaps = np.diff(candidate)
+            if min(gaps) <= 0:
+                continue
+            balance = min(gaps) / max(gaps)
+            score = width * (0.6 + balance)
+            if score > best_score:
+                best = candidate
+                best_score = score
+        return best
+
+    @staticmethod
+    def _interval_index(lines: list[int], value: float) -> Optional[int]:
+        for idx in range(len(lines) - 1):
+            if lines[idx] <= value <= lines[idx + 1]:
+                return idx
+        return None
 
     @staticmethod
     def _preprocess_table_without_grid(image_bgr: np.ndarray) -> np.ndarray:
@@ -373,28 +561,40 @@ class HybridReader:
                     lines.append(line)
             return "\n".join(lines)
 
-        text = text.replace("\n", " ")
-        text = re.sub(r"\s+", " ", text)
+        preserve_lines = label in {
+            "hospital_header",
+            "patient_info",
+            "diagnosis_block",
+            "footer_signature",
+        }
+        raw_lines = text.splitlines() if preserve_lines else [text.replace("\n", " ")]
+        cleaned_lines: list[str] = []
 
-        cleaned_tokens = []
-        for token in text.split(" "):
-            token = re.sub(r"[^0-9A-Za-zÀ-ỹà-ỹĐđ\-/:.,()%]", "", token)
-            if not token:
-                continue
+        for raw_line in raw_lines:
+            raw_line = re.sub(r"\s+", " ", raw_line).strip()
+            cleaned_tokens = []
+            for token in raw_line.split(" "):
+                token = re.sub(r"[^0-9A-Za-zÀ-ỹà-ỹĐđ\-/:.,()%|]", "", token)
+                if not token:
+                    continue
 
-            letter_count = sum(ch.isalpha() for ch in token)
-            digit_count = sum(ch.isdigit() for ch in token)
-            punct_count = sum(ch in "-/:.,()%" for ch in token)
-            if letter_count + digit_count == 0:
-                continue
-            if punct_count > max(letter_count + digit_count, 1):
-                continue
+                letter_count = sum(ch.isalpha() for ch in token)
+                digit_count = sum(ch.isdigit() for ch in token)
+                punct_count = sum(ch in "-/:.,()%|" for ch in token)
+                if letter_count + digit_count == 0:
+                    continue
+                if punct_count > max(letter_count + digit_count, 1):
+                    continue
 
-            cleaned_tokens.append(token)
+                cleaned_tokens.append(token)
 
-        text = " ".join(cleaned_tokens).strip()
-        text = re.sub(r"([:.,%/\-])\1+", r"\1", text)
-        return text
+            line = " ".join(cleaned_tokens).strip()
+            line = re.sub(r"([:.,%/\-])\1+", r"\1", line)
+            if line:
+                cleaned_lines.append(line)
+
+        text = "\n".join(cleaned_lines) if preserve_lines else " ".join(cleaned_lines)
+        return text.strip()
 
 
 MedicalReaderHybrid = HybridReader

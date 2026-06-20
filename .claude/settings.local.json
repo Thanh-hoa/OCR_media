@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(.venvScriptspython.exe -c ' *)"
+      "Bash(.venvScriptspython.exe -c ' *)",
+      "Bash(cd \"d:\\\\\\\\HK2_4\\\\\\\\ProjectDoAn\\\\\\\\Project_OCR\")"
     ]
   }
 }

@@ -19,6 +19,16 @@ def _normalize_dob(raw: Optional[str]) -> Optional[str]:
         return None
     # Bỏ phần giờ nếu có (vd: "15/05/1990 08:00")
     s = re.split(r"\s+\d{1,2}:\d{2}", s)[0].strip()
+    s = re.sub(r"(?<=\d)\s+(?=\d)", "", s)
+    s = s.replace("I", "1").replace("l", "1").replace("O", "0").replace("o", "0")
+
+    m = re.search(r"(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})", s)
+    if m:
+        s = m.group(0)
+    else:
+        y_m = re.search(r"\b([12]\d{3})\b", s)
+        if y_m:
+            return f"{y_m.group(1)}-01-01"
 
     for fmt in (
         "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y",
@@ -142,6 +152,14 @@ class MedicalRecordParser:
     _PP_GENDER = re.compile(r"Giới\s*tính\s*[:\.]?\s*([^\n]+)", re.I)
     _PP_ADDR   = re.compile(r"Địa\s*chỉ\s*[:\.]?\s*([^\n]+)", re.I)
     _PP_BHYT   = re.compile(r"(?:Số\s*thẻ\s*)?BHYT\s*[:\.]?\s*([\w\d]+)", re.I)
+    _PP_LABELS: List[tuple[str, str]] = [
+        ("name", r"Họ\s*(?:và\s*)?tên"),
+        ("dob", r"Ngày\s*sinh|Năm\s*sinh"),
+        ("gender", r"Giới\s*tính|Ciới\s*tính"),
+        ("address", r"Địa\s*chỉ|Dịa\s*chỉ"),
+        ("bhyt", r"(?:Số\s*thẻ\s*)?BHYT|Thẻ\s*bảo\s*hiểm\s*y\s*tế"),
+        ("table_marker", r"Trị\s*số|TÊN\s*XÉT\s*NGHIỆM|Kết\s*quả"),
+    ]
 
     # ── Diagnosis field patterns (label → regex) ────────────────────────────
     _DIAG_FIELDS: List[tuple[str, re.Pattern]] = [
@@ -156,6 +174,19 @@ class MedicalRecordParser:
         ("specimen_type",       re.compile(r"Loại\s*bệnh\s*phẩm\s*[:\.]?\s*([^\n]+)", re.I)),
         ("sample_status",       re.compile(r"Tình\s*trạng\s*mẫu\s*[:\.]?\s*([^\n]+)", re.I)),
     ]
+    _DIAG_LABELS: List[tuple[str, str]] = [
+        ("diagnosis", r"Chẩn\s*đoán|Chân\s*đoán"),
+        ("department", r"Khoa\s*(?:/\s*Phòng)?"),
+        ("facility", r"Cơ\s*s[ởơ]\s*(?:yêu\s*cầu\s*)?|Cơ\s*sơ\s*(?:yêu\s*cầu\s*)?"),
+        ("sample_collector", r"Người\s*l[ấâa]y\s*m[ẫâa]u|Người\s*lây\s*mẫu"),
+        ("sample_collected_at", r"Thời\s*gian\s*l[ấâa]y\s*m[ẫâa]u|Thời\s*gian\s*lây\s*mâu"),
+        ("sample_receiver", r"Người\s*nhận\s*m[ẫâa]u|Người\s*nhận\s*mâu"),
+        ("sample_received_at", r"Thời\s*gian\s*nhận\s*m[ẫâa]u|Thời\s*gian\s*nhận\s*mâu"),
+        ("prescribing_doctor", r"(?:BS|Bác\s*sĩ|gS)\s*chỉ\s*định"),
+        ("specimen_type", r"Loại\s*bệnh\s*ph[ẩâa]m|Loại\s*bệnh\s*phâm"),
+        ("sample_status", r"Tình\s*trạng\s*m[ẫâa]u|Tình\s*trạng\s*mâu"),
+        ("table_marker", r"TT\s*ễ|TÊN\s*XÉT\s*NGHIỆM|Trị\s*số"),
+    ]
 
     # ── Footer title keywords ────────────────────────────────────────────────
     _TITLE_KW = re.compile(
@@ -166,6 +197,30 @@ class MedicalRecordParser:
 
     # ── Header rows to skip in test table (no digits in value column) ────────
     _DATE_LINE = re.compile(r"^\d{1,2}/\d{1,2}/\d{4}")
+
+    @staticmethod
+    def _clean_field_value(value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
+        value = re.sub(r"\s*\|\s*", " ", value)
+        value = re.sub(r"\s+", " ", value).strip(" .;,:|")
+        return value or None
+
+    @classmethod
+    def _extract_labeled_value(
+        cls,
+        text: str,
+        label_pattern: str,
+        stop_patterns: List[str],
+    ) -> Optional[str]:
+        stop_alt = "|".join(f"(?:{pattern})" for pattern in stop_patterns)
+        pattern = (
+            rf"(?:{label_pattern})\s*[:\.]?\s*"
+            rf"(.*?)"
+            rf"(?=\s+(?:{stop_alt})\s*[:\.]?|$)"
+        )
+        m = re.search(pattern, text, flags=re.I | re.S)
+        return cls._clean_field_value(m.group(1)) if m else None
 
     # ─── Public API ──────────────────────────────────────────────────────────
 
@@ -260,17 +315,55 @@ class MedicalRecordParser:
         if not text:
             return res
 
-        def _get(pat: re.Pattern) -> Optional[str]:
-            m = pat.search(text)
-            return (m.group(1).strip() or None) if m else None
+        labels = [pattern for _, pattern in self._PP_LABELS]
+        values = {
+            key: self._extract_labeled_value(text, pattern, labels)
+            for key, pattern in self._PP_LABELS
+        }
 
-        raw_name = _get(self._PP_NAME)
+        raw_name = values.get("name")
+        if not raw_name:
+            m = re.search(
+                r"\b([A-ZÀ-ỸĐ]{2,}(?:\s+[A-ZÀ-ỸĐ]{2,}){1,5})\b",
+                text,
+            )
+            if m:
+                name_tokens = []
+                noise_tokens = {"EU", "TRA", "TRẢÁ", "K1", "QUÁ", "XÉT", "NGHIỆM"}
+                for token in m.group(1).split():
+                    if token in noise_tokens:
+                        break
+                    name_tokens.append(token)
+                if len(name_tokens) >= 2:
+                    raw_name = " ".join(name_tokens[:4])
         res["name"]    = raw_name.upper() if raw_name else None
-        res["dob"]     = _normalize_dob(_get(self._PP_DOB))
-        res["gender"]  = _normalize_gender(_get(self._PP_GENDER))
-        res["address"] = _get(self._PP_ADDR)
-        raw_bhyt = _get(self._PP_BHYT)
-        res["bhyt"] = re.sub(r"\s+", "", raw_bhyt) if raw_bhyt else None
+        raw_dob = values.get("dob")
+        if not raw_dob:
+            m = re.search(
+                r"(\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4})(?=\s+(?:Giới|Ciới)\s*tính)",
+                text,
+                flags=re.I,
+            )
+            raw_dob = m.group(1) if m else None
+        res["dob"]     = _normalize_dob(raw_dob)
+        res["gender"]  = _normalize_gender(values.get("gender"))
+        res["address"] = values.get("address")
+        if not res["address"] and raw_dob:
+            before_dob = text.split(raw_dob, 1)[0]
+            m = re.search(r"((?:\d+|[IlIÍÌ]ó?\d+)\s+[^:]{8,120})[:\s]*$", before_dob)
+            if m:
+                address = self._clean_field_value(m.group(1))
+                if address:
+                    address = re.sub(
+                        r"^.*?(?=(?:\d+|[IlIÍÌ]ó?\d+)\s+[A-ZÀ-ỹà-ỹĐđ])",
+                        "",
+                        address,
+                    )
+                res["address"] = address
+        raw_bhyt = values.get("bhyt")
+        if raw_bhyt:
+            m = re.search(r"(?:[A-Z]{1,2}\d{6,20}|\d{6,20})", re.sub(r"\s+", "", raw_bhyt), re.I)
+            res["bhyt"] = m.group(0) if m else re.sub(r"\s+", "", raw_bhyt)
 
         return res
 
@@ -280,10 +373,11 @@ class MedicalRecordParser:
         res: Dict[str, Optional[str]] = {k: None for k, _ in self._DIAG_FIELDS}
         if not text:
             return res
-        for key, pat in self._DIAG_FIELDS:
-            m = pat.search(text)
-            val = m.group(1).strip() if m else None
-            res[key] = val or None
+        labels = [pattern for _, pattern in self._DIAG_LABELS]
+        for key, pattern in self._DIAG_LABELS:
+            if key == "table_marker":
+                continue
+            res[key] = self._extract_labeled_value(text, pattern, labels)
         return res
 
     # ─── Test Table ───────────────────────────────────────────────────────────

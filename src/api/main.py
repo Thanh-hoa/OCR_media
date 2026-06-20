@@ -157,7 +157,7 @@ def _group_regions(regions: List[Dict[str, Any]]) -> Dict[str, Any]:
             ),
         )
 
-        merged_text = " ".join(
+        merged_text = "\n".join(
             item.get("text", "").strip() for item in items_sorted if item.get("text", "").strip()
         ).strip()
         avg_conf = (
