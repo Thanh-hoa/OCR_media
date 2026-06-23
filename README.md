@@ -23,11 +23,7 @@ Dự án triển khai AI Service bằng **FastAPI** để nhận ảnh bệnh á
 - Python 3.10+.
 - Model YOLO: `models/weights/best.pt`.
 - Tesseract OCR 5.x và gói ngôn ngữ tiếng Việt `vie`.
-- Đường dẫn Tesseract đang cấu hình trong `src/api/main.py`:
-
-```python
-TESSERACT_EXE = Path(r"D:\HK2_4\DoAn\OCR\tesseract.exe")
-```
+- Đường dẫn Tesseract cấu hình bằng biến môi trường `TESSERACT_CMD`.
 
 - Tùy chọn: cấu hình `GEMINI_API_KEY` trong file `.env` để bật Gemini validation.
 
@@ -43,7 +39,7 @@ pip install -r requirements.txt
 ## Chạy API
 
 ```bash
-uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
 Hoặc dùng Makefile:
@@ -157,4 +153,34 @@ Backend nên map:
 
 - Chất lượng OCR phụ thuộc độ nét, ánh sáng, độ nghiêng và bố cục biểu mẫu.
 - Nếu không có `GEMINI_API_KEY`, hệ thống vẫn chạy và trả về kết quả OCR thô đã qua xử lý.
-- Nếu đổi vị trí cài Tesseract, cập nhật `TESSERACT_EXE` trong `src/api/main.py`.
+- Nếu đổi vị trí cài Tesseract, cấu hình biến môi trường `TESSERACT_CMD`.
+
+## Deploy Docker
+
+Sao chép file env mẫu và cấu hình secret:
+
+```bash
+cp .env.example .env
+```
+
+Build và chạy container:
+
+```bash
+docker build -t project-ocr-api .
+docker run --rm -p 8000:8000 --env-file .env project-ocr-api
+```
+
+Trong production, nên đặt các biến môi trường sau:
+
+```env
+TESSERACT_CMD=/usr/bin/tesseract
+YOLO_MODEL_PATH=/app/models/weights/best.pt
+GEMINI_API_KEY=
+MAX_UPLOAD_MB=10
+```
+
+Lệnh chạy production không dùng `--reload`:
+
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --workers 1
+```

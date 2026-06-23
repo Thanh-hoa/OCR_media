@@ -12,13 +12,15 @@ Outputs:
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
 
 import cv2
 from dotenv import load_dotenv
 
-ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
@@ -27,8 +29,8 @@ from src.core.reader_hybrid import HybridReader
 from src.utils.image_processing import deskew_image
 
 
-YOLO_MODEL = ROOT / "models" / "weights" / "best.pt"
-TESSERACT_EXE = Path(r"D:\HK2_4\DoAn\OCR\tesseract.exe")
+YOLO_MODEL = Path(os.getenv("YOLO_MODEL_PATH") or ROOT / "models" / "weights" / "best.pt")
+TESSERACT_CMD = os.getenv("TESSERACT_CMD") or "tesseract"
 
 
 COLORS = {
@@ -57,7 +59,7 @@ def main() -> None:
 
     detector = MedicalDetector(model_path=str(YOLO_MODEL), conf_threshold=0.25)
     reader = HybridReader(
-        tesseract_cmd=str(TESSERACT_EXE),
+        tesseract_cmd=TESSERACT_CMD,
         enable_gemini_validation=False,
     )
 

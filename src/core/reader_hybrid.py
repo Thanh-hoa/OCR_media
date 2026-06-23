@@ -2,18 +2,23 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
+import tempfile
 import threading
 import unicodedata
 import logging
 from pathlib import Path
 from typing import Optional
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+WORKSPACE_TMP = PROJECT_ROOT / ".tmp"
+WORKSPACE_TMP.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
+os.environ.setdefault("PADDLE_PDX_CACHE_HOME", str(WORKSPACE_TMP / "paddlex_cache"))
+os.environ.setdefault("FLAGS_use_mkldnn", "0")
+
 import cv2
 import numpy as np
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
-os.environ.setdefault("PADDLE_PDX_CACHE_HOME", str(PROJECT_ROOT / ".paddlex_cache"))
 from paddleocr import PaddleOCR
 import pytesseract
 
@@ -34,13 +39,12 @@ class HybridReader:
     ) -> None:
         self.ocr_paddle = None
         self._paddle_unavailable = False
+        self.last_paddle_error: Optional[str] = None
         self._paddle_lock = threading.Lock()
         self.lang_paddle = lang_paddle
 
-        exe_path = Path(tesseract_cmd)
-        if not exe_path.exists():
-            raise FileNotFoundError(f"Tesseract not found: {exe_path}")
-        pytesseract.pytesseract.tesseract_cmd = str(exe_path)
+        resolved_tesseract_cmd = self._resolve_tesseract_cmd(tesseract_cmd)
+        pytesseract.pytesseract.tesseract_cmd = resolved_tesseract_cmd
 
         self.lang_tesseract = lang_tesseract
         self.confidence_threshold = confidence_threshold
@@ -64,12 +68,47 @@ class HybridReader:
         if self.ocr_paddle is None:
             with self._paddle_lock:
                 if self.ocr_paddle is None:
-                    self.ocr_paddle = PaddleOCR(
-                        use_angle_cls=False,
-                        lang=self.lang_paddle,
-                        use_doc_orientation_classify=False,
-                        use_doc_unwarping=False,
-                    )
+                    old_tempdir = tempfile.tempdir
+                    old_env = {
+                        name: os.environ.get(name)
+                        for name in ("TMP", "TEMP", "TMPDIR")
+                    }
+                    try:
+                        os.environ["TMP"] = str(WORKSPACE_TMP)
+                        os.environ["TEMP"] = str(WORKSPACE_TMP)
+                        os.environ["TMPDIR"] = str(WORKSPACE_TMP)
+                        tempfile.tempdir = str(WORKSPACE_TMP)
+                        self.ocr_paddle = PaddleOCR(
+                            lang=self.lang_paddle,
+                            use_doc_orientation_classify=False,
+                            use_doc_unwarping=False,
+                            use_textline_orientation=False,
+                        )
+                    finally:
+                        tempfile.tempdir = old_tempdir
+                        for name, value in old_env.items():
+                            if value is None:
+                                os.environ.pop(name, None)
+                            else:
+                                os.environ[name] = value
+
+    @staticmethod
+    def _resolve_tesseract_cmd(tesseract_cmd: str) -> str:
+        cmd = str(tesseract_cmd).strip()
+        if not cmd:
+            raise FileNotFoundError("Tesseract command is empty.")
+
+        cmd_path = Path(cmd)
+        has_path_separator = any(separator in cmd for separator in ("\\", "/"))
+        if has_path_separator or cmd_path.is_absolute():
+            if cmd_path.exists():
+                return str(cmd_path)
+            raise FileNotFoundError(f"Tesseract not found: {cmd_path}")
+
+        resolved = shutil.which(cmd)
+        if resolved:
+            return resolved
+        raise FileNotFoundError(f"Tesseract command not found in PATH: {cmd}")
 
     def read_paddle_only(self, image_bgr: np.ndarray, label: Optional[str] = None) -> str:
         """Cấu hình 2: PaddleOCR only, không fallback, không Gemini."""
@@ -140,28 +179,14 @@ class HybridReader:
             return "", 0.0
         try:
             self._init_paddle()
-            result = self.ocr_paddle.ocr(image_bgr, cls=True)
+            result = self.ocr_paddle.predict(image_bgr)
             
-            if not result or not result[0]:
+            if not result:
                 return "", 0.0
             
             texts = []
             confidences = []
-            rows = []
-            
-            for line in result[0]:
-                if not line or len(line) < 2 or not line[1]:
-                    continue
-
-                box = line[0]
-                text = line[1][0]
-                confidence = float(line[1][1])
-                if confidence <= 0.3 or not text:
-                    continue
-
-                avg_y = sum(point[1] for point in box) / 4.0
-                avg_x = sum(point[0] for point in box) / 4.0
-                rows.append((avg_y, avg_x, text, confidence))
+            rows = self._extract_paddle_rows(result)
 
             rows.sort(key=lambda r: (r[0], r[1]))
 
@@ -191,8 +216,60 @@ class HybridReader:
             
         except Exception as e:
             self._paddle_unavailable = True
+            self.last_paddle_error = str(e)
             logger.warning("PaddleOCR failed for %s: %s", label, e)
             return "", 0.0
+
+    @staticmethod
+    def _extract_paddle_rows(result) -> list[tuple[float, float, str, float]]:
+        rows: list[tuple[float, float, str, float]] = []
+
+        # PaddleOCR 3.x returns a list of dict-like OCRResult objects.
+        for page in result:
+            if hasattr(page, "get") and page.get("rec_texts") is not None:
+                texts = page.get("rec_texts")
+                scores = page.get("rec_scores")
+                boxes = page.get("rec_polys")
+                if boxes is None:
+                    boxes = page.get("dt_polys")
+                texts = [] if texts is None else texts
+                scores = [] if scores is None else scores
+                boxes = [] if boxes is None else boxes
+                for idx, text in enumerate(texts):
+                    confidence = float(scores[idx]) if idx < len(scores) else 0.0
+                    if confidence <= 0.3 or not text:
+                        continue
+                    box = boxes[idx] if idx < len(boxes) else []
+                    avg_y, avg_x = HybridReader._box_center(box)
+                    rows.append((avg_y, avg_x, str(text), confidence))
+                continue
+
+            # PaddleOCR 2.x returned [[box, [text, confidence]], ...].
+            lines = page if isinstance(page, list) else []
+            for line in lines:
+                if not line or len(line) < 2 or not line[1]:
+                    continue
+                box = line[0]
+                text = line[1][0]
+                confidence = float(line[1][1])
+                if confidence <= 0.3 or not text:
+                    continue
+                avg_y, avg_x = HybridReader._box_center(box)
+                rows.append((avg_y, avg_x, text, confidence))
+
+        return rows
+
+    @staticmethod
+    def _box_center(box) -> tuple[float, float]:
+        if box is None or len(box) == 0:
+            return 0.0, 0.0
+
+        points = np.asarray(box, dtype=float).reshape(-1, 2)
+        if points.size == 0:
+            return 0.0, 0.0
+        avg_x = float(points[:, 0].mean())
+        avg_y = float(points[:, 1].mean())
+        return avg_y, avg_x
 
     def _read_tesseract(self, image_bgr: np.ndarray, label: Optional[str] = None) -> str:
         try:
@@ -209,6 +286,10 @@ class HybridReader:
                 return self._normalize_text(cell_text, label="test_table")
 
             cleaned = self._preprocess_table_without_grid(image_bgr)
+            positioned_text = self._read_table_by_positions(cleaned)
+            if positioned_text:
+                return self._normalize_text(positioned_text, label="test_table")
+
             config = (
                 f"--oem {self.oem} --psm 11 "
                 "-c preserve_interword_spaces=1 "
@@ -334,6 +415,82 @@ class HybridReader:
             lines.append(f"{name} | {value} | {unit} | {reference}")
 
         return "\n".join(lines) if len(lines) >= 8 else ""
+
+    def _read_table_by_positions(self, cleaned_gray: np.ndarray) -> str:
+        data = pytesseract.image_to_data(
+            cleaned_gray,
+            lang=self.lang_tesseract,
+            config=(
+                f"--oem {self.oem} --psm 6 "
+                "-c preserve_interword_spaces=1 "
+                "-c tessedit_char_blacklist=~`^_=[]{}<>"
+            ),
+            output_type=pytesseract.Output.DICT,
+        )
+
+        w = cleaned_gray.shape[1]
+        tokens: list[tuple[int, int, int, str]] = []
+        for i, raw_token in enumerate(data.get("text", [])):
+            token = (raw_token or "").strip()
+            if not token:
+                continue
+            try:
+                conf = float(data["conf"][i])
+            except (TypeError, ValueError):
+                conf = -1.0
+            if conf < 10:
+                continue
+
+            x = int(data["left"][i])
+            y = int(data["top"][i])
+            bw = int(data["width"][i])
+            bh = int(data["height"][i])
+            tokens.append((x + bw // 2, y + bh // 2, max(1, bh), token))
+
+        if not tokens:
+            return ""
+
+        tokens.sort(key=lambda item: (item[1], item[0]))
+        median_h = float(np.median([height for _, _, height, _ in tokens]))
+        row_gap = max(14.0, median_h * 0.85)
+        rows: list[list[tuple[int, int, str]]] = []
+        row_centers: list[float] = []
+
+        for x, y, _, token in tokens:
+            if not rows or abs(y - row_centers[-1]) > row_gap:
+                rows.append([(x, y, token)])
+                row_centers.append(float(y))
+                continue
+            rows[-1].append((x, y, token))
+            row_centers[-1] = sum(item[1] for item in rows[-1]) / len(rows[-1])
+
+        lines: list[str] = []
+        for row in rows:
+            row = sorted(row, key=lambda item: item[0])
+            cols: list[list[tuple[int, str]]] = [[], [], [], []]
+            for x, _, token in row:
+                if x < w * 0.40:
+                    col_idx = 0
+                elif x < w * 0.56:
+                    col_idx = 1
+                elif x < w * 0.72:
+                    col_idx = 2
+                else:
+                    col_idx = 3
+                cols[col_idx].append((x, token))
+
+            values = [
+                " ".join(token for _, token in sorted(col, key=lambda item: item[0])).strip()
+                for col in cols
+            ]
+            name, value, unit, reference = values
+            if not name or not re.search(r"\d", value):
+                continue
+            if re.search(r"T[EÊ]N|X[EÉ]T|NGHI|K[EÊ]T|QU[AẢ]|GI[AÁ]", name, re.I):
+                continue
+            lines.append(f"{name} | {value} | {unit} | {reference}")
+
+        return "\n".join(lines) if len(lines) >= 3 else ""
 
     @staticmethod
     def _line_centers(mask: np.ndarray, axis: str, min_length: float) -> list[int]:

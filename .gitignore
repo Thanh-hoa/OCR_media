@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.paddlex_cache/
+.tmp/
 
 # Environment variables (API keys, credentials)
 .env
@@ -17,3 +19,4 @@ PROJECT_SUMMARY.md
 TECHNICAL_GUIDE.md
 docs
 evaluation
+tests

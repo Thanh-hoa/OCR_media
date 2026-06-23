@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import shutil
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
@@ -35,12 +36,16 @@ app = FastAPI(
 )
 
 PROJECT_ROOT = project_root
-YOLO_MODEL_PATH = PROJECT_ROOT / "models" / "weights" / "best.pt"
-TESSERACT_EXE = Path(r"D:\HK2_4\DoAn\OCR\tesseract.exe")
+YOLO_MODEL_PATH = Path(
+    os.getenv("YOLO_MODEL_PATH", str(PROJECT_ROOT / "models" / "weights" / "best.pt"))
+)
+TESSERACT_CMD = os.getenv("TESSERACT_CMD") or os.getenv("TESSERACT_EXE") or "tesseract"
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
+MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
 
 
 detector = MedicalDetector(model_path=str(YOLO_MODEL_PATH), conf_threshold=0.25)
-reader = HybridReader(tesseract_cmd=str(TESSERACT_EXE), confidence_threshold=0.5)
+reader = HybridReader(tesseract_cmd=TESSERACT_CMD, confidence_threshold=0.5)
 ocr_parser = MedicalRecordParser()
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
@@ -57,10 +62,16 @@ OUTPUT_CLASS_ORDER = [
 def health() -> Dict[str, Any]:
     gemini_enabled = bool(os.getenv("GEMINI_API_KEY"))
     gemini_initialized = reader.gemini_validator is not None
+    tesseract_resolved = shutil.which(TESSERACT_CMD) or TESSERACT_CMD
+    tesseract_exists = bool(shutil.which(TESSERACT_CMD)) or Path(TESSERACT_CMD).exists()
     return {
         "status": "ok",
         "model_path": str(YOLO_MODEL_PATH),
-        "tesseract_path": str(TESSERACT_EXE),
+        "model_exists": YOLO_MODEL_PATH.exists(),
+        "tesseract_cmd": TESSERACT_CMD,
+        "tesseract_resolved": tesseract_resolved,
+        "tesseract_available": tesseract_exists,
+        "max_upload_mb": MAX_UPLOAD_MB,
         "gemini_api_key_set": gemini_enabled,
         "gemini_validator_initialized": gemini_initialized,
         "how_to_test_postman": {
@@ -89,6 +100,8 @@ async def upload_and_ocr(file: UploadFile = File(...)) -> Dict[str, Any]:
         file_bytes = await file.read()
         if not file_bytes:
             raise ValueError("File rỗng. Hãy chọn một ảnh hợp lệ.")
+        if len(file_bytes) > MAX_UPLOAD_BYTES:
+            raise ValueError(f"File quá lớn. Giới hạn hiện tại: {MAX_UPLOAD_MB} MB.")
         image_bgr = MedicalDetector.decode_image_bytes(file_bytes)
         image_bgr = deskew_image(image_bgr)
         logger.info(f"Processing file: {filename}")
