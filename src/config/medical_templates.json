@@ -1,0 +1,241 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "hue_huyet_hoc_result",
+      "name": "Phiếu trả kết quả xét nghiệm huyết học - Bệnh viện Trung ương Huế",
+      "match": {
+        "regions": ["hospital_header", "patient_info", "diagnosis_block"],
+        "keywords": [
+          "BỆNH VIỆN TRUNG ƯƠNG HUẾ",
+          "TRUNG ƯƠNG HUẾ",
+          "KHOA XÉT NGHIỆM HUYẾT HỌC",
+          "HUYẾT HỌC",
+          "PHIẾU TRẢ KẾT QUẢ XÉT NGHIỆM"
+        ],
+        "min_score": 1
+      },
+      "hospital": {
+        "name": "BỆNH VIỆN TRUNG ƯƠNG HUẾ",
+        "address": "16 Lê Lợi, Phường Vĩnh Ninh, Thành phố Huế",
+        "phone_labels": ["ĐT", "DT"]
+      },
+      "fields": {
+        "patient_name": {
+          "region": "patient_info",
+          "labels": ["Họ tên", "Họ và tên"],
+          "stop_labels": ["Ngày sinh", "Giới tính", "Địa chỉ", "Số thẻ BHYT", "BHYT"]
+        },
+        "patient_dob": {
+          "region": "patient_info",
+          "labels": ["Ngày sinh"],
+          "normalizer": "dob",
+          "stop_labels": ["Giới tính", "Địa chỉ", "Số thẻ BHYT", "BHYT"]
+        },
+        "patient_gender": {
+          "region": "patient_info",
+          "labels": ["Giới tính"],
+          "normalizer": "gender",
+          "stop_labels": ["Địa chỉ", "Số thẻ BHYT", "BHYT"]
+        },
+        "patient_address": {
+          "region": "patient_info",
+          "labels": ["Địa chỉ"],
+          "stop_labels": ["Số thẻ BHYT", "BHYT", "Chẩn đoán"]
+        },
+        "patient_bhyt": {
+          "region": "patient_info",
+          "labels": ["Số thẻ BHYT", "BHYT"],
+          "normalizer": "compact",
+          "stop_labels": ["Chẩn đoán"]
+        },
+        "diagnosis": {
+          "region": "diagnosis_block",
+          "labels": ["Chẩn đoán", "Chân đoán"],
+          "normalizer": "diagnosis",
+          "stop_labels": ["Khoa/Phòng", "Người lấy mẫu", "Người nhận mẫu", "BS chỉ định", "Cơ sở yêu cầu", "Thời gian lấy mẫu", "Thời gian nhận mẫu", "Tình trạng mẫu", "Loại bệnh phẩm"]
+        },
+        "department": {
+          "region": "diagnosis_block",
+          "labels": ["Khoa/Phòng"],
+          "stop_labels": ["Người lấy mẫu", "Người nhận mẫu", "BS chỉ định", "Cơ sở yêu cầu"]
+        },
+        "sample_collector": {
+          "region": "diagnosis_block",
+          "labels": ["Người lấy mẫu"],
+          "stop_labels": ["Người nhận mẫu", "BS chỉ định", "Cơ sở yêu cầu"]
+        },
+        "sample_receiver": {
+          "region": "diagnosis_block",
+          "labels": ["Người nhận mẫu"],
+          "stop_labels": ["BS chỉ định", "Cơ sở yêu cầu", "Thời gian lấy mẫu"]
+        },
+        "prescribing_doctor": {
+          "region": "diagnosis_block",
+          "labels": ["BS chỉ định", "Bác sĩ chỉ định"],
+          "stop_labels": ["Cơ sở yêu cầu", "Thời gian lấy mẫu", "Thời gian nhận mẫu"]
+        },
+        "facility": {
+          "region": "diagnosis_block",
+          "labels": ["Cơ sở yêu cầu"],
+          "stop_labels": ["Thời gian lấy mẫu", "Thời gian nhận mẫu", "Tình trạng mẫu"]
+        },
+        "sample_collected_at": {
+          "region": "diagnosis_block",
+          "labels": ["Thời gian lấy mẫu"],
+          "stop_labels": ["Thời gian nhận mẫu", "Tình trạng mẫu", "Loại bệnh phẩm"]
+        },
+        "sample_received_at": {
+          "region": "diagnosis_block",
+          "labels": ["Thời gian nhận mẫu"],
+          "stop_labels": ["Tình trạng mẫu", "Loại bệnh phẩm"]
+        },
+        "sample_status": {
+          "region": "diagnosis_block",
+          "labels": ["Tình trạng mẫu"],
+          "stop_labels": ["Loại bệnh phẩm"]
+        },
+        "specimen_type": {
+          "region": "diagnosis_block",
+          "labels": ["Loại bệnh phẩm", "Bệnh phẩm"],
+          "stop_labels": ["TÊN XÉT NGHIỆM", "TT"]
+        }
+      },
+      "table": {
+        "type": "lab_result",
+        "columns": ["testName", "testValue", "referenceRange", "unit"]
+      }
+    },
+    {
+      "id": "thien_phuc_lab_result",
+      "name": "Phiếu xét nghiệm - Phòng khám Đa khoa Thiên Phúc",
+      "match": {
+        "regions": ["hospital_header", "patient_info", "diagnosis_block"],
+        "keywords": [
+          "PHÒNG KHÁM ĐA KHOA THIÊN PHÚC",
+          "THIÊN PHÚC",
+          "SỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN",
+          "ĐẶT LỊCH HẸN",
+          "Bác sĩ chỉ định"
+        ],
+        "min_score": 1
+      },
+      "hospital": {
+        "name": "PHÒNG KHÁM ĐA KHOA THIÊN PHÚC",
+        "address": "646 Tổ 45 ấp Bình Hòa Đông, xã Đồng Sơn, tỉnh Đồng Tháp",
+        "phone_labels": ["SỐ ĐIỆN THOẠI ĐẶT LỊCH HẸN", "ĐIỆN THOẠI ĐẶT LỊCH HẸN"]
+      },
+      "fields": {
+        "patient_name": {
+          "region": "patient_info",
+          "labels": ["Họ và tên", "Họ tên"],
+          "stop_labels": ["Năm sinh", "Ngày sinh", "Giới tính", "Điện thoại", "Địa chỉ"]
+        },
+        "patient_dob": {
+          "region": "patient_info",
+          "labels": ["Năm sinh", "Ngày sinh"],
+          "normalizer": "dob",
+          "stop_labels": ["Giới tính", "Điện thoại", "Địa chỉ"]
+        },
+        "patient_gender": {
+          "region": "patient_info",
+          "labels": ["Giới tính"],
+          "normalizer": "gender",
+          "stop_labels": ["Điện thoại", "Địa chỉ", "Thẻ bảo hiểm y tế"]
+        },
+        "patient_address": {
+          "region": "patient_info",
+          "labels": ["Địa chỉ"],
+          "stop_labels": ["Thẻ bảo hiểm y tế", "BHYT"]
+        },
+        "patient_bhyt": {
+          "region": "patient_info",
+          "labels": ["Thẻ bảo hiểm y tế", "BHYT"],
+          "normalizer": "compact",
+          "stop_labels": ["Bác sĩ chỉ định", "Chẩn đoán"]
+        },
+        "prescribing_doctor": {
+          "region": "diagnosis_block",
+          "labels": ["Bác sĩ chỉ định", "BS chỉ định"],
+          "stop_labels": ["Chẩn đoán", "Bệnh phẩm", "Mã bệnh nhân", "Ngày lấy mẫu"]
+        },
+        "diagnosis": {
+          "region": "diagnosis_block",
+          "labels": ["Chẩn đoán", "Chân đoán"],
+          "normalizer": "diagnosis",
+          "stop_labels": ["Bệnh phẩm", "Loại bệnh phẩm", "Mã bệnh nhân", "Ngày lấy mẫu"]
+        },
+        "specimen_type": {
+          "region": "diagnosis_block",
+          "labels": ["Bệnh phẩm", "Loại bệnh phẩm"],
+          "stop_labels": ["Mã bệnh nhân", "Ngày lấy mẫu"]
+        },
+        "sample_collected_at": {
+          "region": "diagnosis_block",
+          "labels": ["Ngày lấy mẫu", "Thời gian lấy mẫu"],
+          "stop_labels": ["TÊN XÉT NGHIỆM", "PHÒNG XÉT NGHIỆM"]
+        }
+      },
+      "table": {
+        "type": "lab_result",
+        "columns": ["testName", "testValue", "referenceRange", "unit"]
+      }
+    },
+    {
+      "id": "go_cong_tay_order",
+      "name": "Phiếu chỉ định - TTYT Khu vực Gò Công Tây",
+      "match": {
+        "regions": ["hospital_header", "patient_info", "diagnosis_block"],
+        "keywords": [
+          "TTYT KHU VỰC GÒ CÔNG TÂY",
+          "PHIẾU CHỈ ĐỊNH",
+          "Mã số người bệnh"
+        ],
+        "min_score": 1
+      },
+      "hospital": {
+        "name": "TTYT KHU VỰC GÒ CÔNG TÂY"
+      },
+      "fields": {
+        "patient_name": {
+          "region": "patient_info",
+          "labels": ["Họ và tên", "Họ tên"],
+          "stop_labels": ["Năm sinh", "Ngày sinh", "Giới tính", "Địa chỉ"]
+        },
+        "patient_dob": {
+          "region": "patient_info",
+          "labels": ["Năm sinh", "Ngày sinh"],
+          "normalizer": "dob",
+          "stop_labels": ["Giới tính", "Địa chỉ", "Thẻ bảo hiểm y tế"]
+        },
+        "patient_gender": {
+          "region": "patient_info",
+          "labels": ["Giới tính"],
+          "normalizer": "gender",
+          "stop_labels": ["Địa chỉ", "Thẻ bảo hiểm y tế"]
+        },
+        "patient_address": {
+          "region": "patient_info",
+          "labels": ["Địa chỉ"],
+          "stop_labels": ["Thẻ bảo hiểm y tế", "Nơi KCB ban đầu", "Mạch", "Chẩn đoán"]
+        },
+        "patient_bhyt": {
+          "region": "patient_info",
+          "labels": ["Thẻ bảo hiểm y tế", "BHYT"],
+          "normalizer": "compact",
+          "stop_labels": ["Nơi KCB ban đầu", "Mạch", "Chẩn đoán"]
+        },
+        "diagnosis": {
+          "region": "diagnosis_block",
+          "labels": ["Chẩn đoán", "Chân đoán"],
+          "normalizer": "diagnosis",
+          "stop_labels": ["STT", "Yêu cầu", "Ngày", "Bác sĩ điều trị"]
+        }
+      },
+      "table": {
+        "type": "service_order",
+        "columns": ["testName", "quantity"]
+      }
+    }
+  ]
+}

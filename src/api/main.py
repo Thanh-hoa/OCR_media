@@ -1,14 +1,33 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+import os
+import shutil
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
+from src.core.data_parser import MedicalRecordParser
 from src.core.detector import MedicalDetector
 from src.core.reader_hybrid import HybridReader
-from src.utils.yolo_debug import save_yolo_region_debug, should_save_yolo_debug
+from src.utils.image_processing import deskew_image
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+# Load environment variables từ .env
+project_root = Path(__file__).resolve().parents[2]
+env_file = project_root / ".env"
+logger.info(f"Loading .env from: {env_file} (exists: {env_file.exists()})")
+load_dotenv(dotenv_path=str(env_file))
 
 app = FastAPI(
     title="Project OCR API",
@@ -16,14 +35,19 @@ app = FastAPI(
     version="2.0.0",
 )
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-YOLO_MODEL_PATH = PROJECT_ROOT / "models" / "weights" / "best.pt"
-TESSERACT_EXE = Path(r"D:\HK2_4\DoAn\OCR\tesseract.exe")
-YOLO_REGIONS_OUTPUT_DIR = PROJECT_ROOT / "outputs" / "yolo_regions"
+PROJECT_ROOT = project_root
+YOLO_MODEL_PATH = Path(
+    os.getenv("YOLO_MODEL_PATH", str(PROJECT_ROOT / "models" / "weights" / "best.pt"))
+)
+TESSERACT_CMD = os.getenv("TESSERACT_CMD") or os.getenv("TESSERACT_EXE") or "tesseract"
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
+MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
 
 
 detector = MedicalDetector(model_path=str(YOLO_MODEL_PATH), conf_threshold=0.25)
-reader = HybridReader(tesseract_cmd=str(TESSERACT_EXE), confidence_threshold=0.5)
+reader = HybridReader(tesseract_cmd=TESSERACT_CMD, confidence_threshold=0.5)
+ocr_parser = MedicalRecordParser()
+
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 OUTPUT_CLASS_ORDER = [
     "hospital_header",
@@ -36,11 +60,20 @@ OUTPUT_CLASS_ORDER = [
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
+    gemini_enabled = bool(os.getenv("GEMINI_API_KEY"))
+    gemini_initialized = reader.gemini_validator is not None
+    tesseract_resolved = shutil.which(TESSERACT_CMD) or TESSERACT_CMD
+    tesseract_exists = bool(shutil.which(TESSERACT_CMD)) or Path(TESSERACT_CMD).exists()
     return {
         "status": "ok",
         "model_path": str(YOLO_MODEL_PATH),
-        "tesseract_path": str(TESSERACT_EXE),
-        "yolo_debug_dir": str(YOLO_REGIONS_OUTPUT_DIR),
+        "model_exists": YOLO_MODEL_PATH.exists(),
+        "tesseract_cmd": TESSERACT_CMD,
+        "tesseract_resolved": tesseract_resolved,
+        "tesseract_available": tesseract_exists,
+        "max_upload_mb": MAX_UPLOAD_MB,
+        "gemini_api_key_set": gemini_enabled,
+        "gemini_validator_initialized": gemini_initialized,
         "how_to_test_postman": {
             "method": "POST",
             "url": "/v1/ocr/upload",
@@ -58,54 +91,66 @@ async def upload_and_ocr(file: UploadFile = File(...)) -> Dict[str, Any]:
         raise HTTPException(
             status_code=400,
             detail=(
-                "Dinh dang file khong duoc ho tro. "
-                "Hay dung: .jpg, .jpeg, .png, .bmp, .tif, .tiff, .webp"
+                "Định dạng file không được hỗ trợ. "
+                "Hãy dùng: .jpg, .jpeg, .png, .bmp, .tif, .tiff, .webp"
             ),
         )
 
     try:
         file_bytes = await file.read()
         if not file_bytes:
-            raise ValueError("File rong. Hay chon mot anh hop le.")
+            raise ValueError("File rỗng. Hãy chọn một ảnh hợp lệ.")
+        if len(file_bytes) > MAX_UPLOAD_BYTES:
+            raise ValueError(f"File quá lớn. Giới hạn hiện tại: {MAX_UPLOAD_MB} MB.")
         image_bgr = MedicalDetector.decode_image_bytes(file_bytes)
+        image_bgr = deskew_image(image_bgr)
+        logger.info(f"Processing file: {filename}")
         detections = detector.detect(image_bgr)
+        logger.info(f"Detected {len(detections)} regions")
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=400, detail=f"Loi xu ly anh: {exc}") from exc
+        logger.error(f"Image processing error: {exc}")
+        raise HTTPException(status_code=400, detail=f"Lỗi xử lý ảnh: {exc}") from exc
 
-    debug_output: Optional[Dict[str, str]] = None
-    if should_save_yolo_debug() and detections:
-        debug_output = save_yolo_region_debug(
-            image_bgr,
-            detections,
-            filename,
-            YOLO_REGIONS_OUTPUT_DIR,
-            PROJECT_ROOT,
-        )
+    # Bước 1: OCR song song (không Gemini) — nhanh
+    async def _ocr_one(item):
+        text = await asyncio.to_thread(reader.read_ocr_only, item.cropped_image, item.label)
+        return {"label": item.label, "confidence": round(item.confidence, 6),
+                "bbox_xyxy": list(item.bbox_xyxy), "text": text,
+                "_crop": item.cropped_image}
 
-    results: List[Dict[str, Any]] = []
-    for item in detections:
-        text = reader.read_text(item.cropped_image, label=item.label)
-        results.append(
-            {
-                "label": item.label,
-                "confidence": round(item.confidence, 6),
-                "bbox_xyxy": list(item.bbox_xyxy),
-                "text": text,
-            }
+    ocr_results: List[Dict[str, Any]] = list(
+        await asyncio.gather(*[_ocr_one(item) for item in detections])
+    )
+
+    # Bước 2: 1 Gemini call duy nhất cho tất cả vùng
+    if reader.gemini_validator:
+        batch_input = [
+            {"label": r["label"], "crop_image": r["_crop"], "ocr_text": r["text"]}
+            for r in ocr_results
+        ]
+        gemini_out = await asyncio.to_thread(
+            reader.gemini_validator.validate_batch, batch_input
         )
+        for r in ocr_results:
+            if r["label"] in gemini_out:
+                r["text"] = gemini_out[r["label"]]
+        logger.info(f"Gemini batch done: {list(gemini_out.keys())}")
+
+    results: List[Dict[str, Any]] = [
+        {k: v for k, v in r.items() if k != "_crop"} for r in ocr_results
+    ]
 
     result = _group_regions(results)
-    payload: Dict[str, Any] = {
-        "filename": filename,
-        "result": result,
-    }
-    if debug_output:
-        payload["debug_output"] = debug_output
-    return payload
+    logger.info(f"OCR processing complete for {filename}")
 
+    ocr_texts = {k: v.get("text") for k, v in result.items()}
+    try:
+        parsed = ocr_parser.parse(ocr_data=ocr_texts)
+    except Exception as exc:
+        logger.warning(f"Structured parse failed: {exc}")
+        parsed = None
 
-
-
+    return {"filename": filename, "result": result, "parsedData": parsed}
 
 def _group_regions(regions: List[Dict[str, Any]]) -> Dict[str, Any]:
     groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
@@ -125,7 +170,7 @@ def _group_regions(regions: List[Dict[str, Any]]) -> Dict[str, Any]:
             ),
         )
 
-        merged_text = " ".join(
+        merged_text = "\n".join(
             item.get("text", "").strip() for item in items_sorted if item.get("text", "").strip()
         ).strip()
         avg_conf = (

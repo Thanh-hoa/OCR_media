@@ -1,0 +1,15 @@
+.git
+.agents
+.claude
+.venv
+venv
+__pycache__
+*.pyc
+.env
+.env.local
+.paddlex_cache
+.tmp
+outputs
+evaluation
+PROJECT_SUMMARY.md
+TECHNICAL_GUIDE.md
