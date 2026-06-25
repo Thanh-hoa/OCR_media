@@ -184,3 +184,14 @@ Lệnh chạy production không dùng `--reload`:
 ```bash
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --workers 1
 ```
+
+## Deploy với domain `model.medicalocr-nthoa.io.vn`
+
+Nếu bạn deploy riêng service OCR này cho subdomain model, cấu hình thực tế nên là:
+
+1. Tạo `A record` cho `model.medicalocr-nthoa.io.vn` trỏ về public IP của VPS.
+2. Chạy container bằng `docker compose -f docker-compose.prod.yml up -d --build`.
+3. Đặt reverse proxy Nginx trỏ `model.medicalocr-nthoa.io.vn` về `127.0.0.1:8000` hoặc port container.
+4. Nếu FE gọi trực tiếp API từ browser, thêm `https://medicalocr-nthoa.io.vn` vào `CORS_ORIGINS`.
+
+Ví dụ file production compose của service model nằm ở [docker-compose.prod.yml](docker-compose.prod.yml).

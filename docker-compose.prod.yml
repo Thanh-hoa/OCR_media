@@ -1,0 +1,33 @@
+services:
+  model-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: project-ocr-model-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      TESSERACT_CMD: /usr/bin/tesseract
+      YOLO_MODEL_PATH: /app/models/weights/best.pt
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
+      PADDLE_PDX_CACHE_HOME: /app/.paddlex_cache
+      MAX_UPLOAD_MB: "10"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models/weights:/app/models/weights:ro
+      - paddle_cache:/app/.paddlex_cache
+      - app_tmp:/app/.tmp
+    command: ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  paddle_cache:
+  app_tmp:
