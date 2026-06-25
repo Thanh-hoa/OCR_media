@@ -10,13 +10,14 @@ from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.core.data_parser import MedicalRecordParser
 from src.core.detector import MedicalDetector
 from src.core.reader_hybrid import HybridReader
 from src.utils.image_processing import deskew_image
 
-# Setup logging
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -33,6 +34,23 @@ app = FastAPI(
     title="Project OCR API",
     description="Upload image -> YOLOv11 detection -> Hybrid OCR",
     version="2.0.0",
+)
+
+cors_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "https://medicalocr-nthoa.io.vn,https://api.medicalocr-nthoa.io.vn",
+    ).split(",")
+    if origin.strip()
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 PROJECT_ROOT = project_root
