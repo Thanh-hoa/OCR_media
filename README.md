@@ -1,108 +1,197 @@
-# Hệ thống trích xuất thông tin bệnh án tiếng Việt (YOLO + Tesseract OCR)
+# Hệ thống trích xuất thông tin bệnh án tiếng Việt
 
-Dự án dùng **YOLO** (Ultralytics) để phân vùng các khối trên ảnh bệnh án, sau đó **Tesseract OCR** đọc chữ từng vùng và trả về JSON dễ tích hợp với **Spring Boot** hoặc client khác.
+Dự án triển khai AI Service bằng **FastAPI** để nhận ảnh bệnh án, phát hiện vùng thông tin bằng **YOLO11n-OBB**, đọc chữ bằng pipeline **OCR lai PaddleOCR/Tesseract**, hiệu chỉnh kết quả bằng **Gemini** nếu có API key, rồi chuẩn hóa dữ liệu thành JSON để tích hợp với Backend Spring Boot hoặc client khác.
+
+## Pipeline chính
+
+1. Nhận ảnh upload qua API `/v1/ocr/upload`.
+2. Giải mã ảnh, deskew ảnh đầu vào bằng OpenCV.
+3. Dùng `models/weights/best.pt` để phát hiện 5 vùng:
+   - `hospital_header`
+   - `patient_info`
+   - `diagnosis_block`
+   - `test_table`
+   - `footer_signature`
+4. Crop từng vùng. Nếu YOLO trả về OBB thì crop bằng perspective transform theo 4 góc thật của vùng.
+5. Tiền xử lý crop bằng OpenCV.
+6. OCR bằng PaddleOCR tiếng Việt; nếu kết quả thấp hoặc rỗng thì fallback sang Tesseract `vie`.
+7. Nếu có `GEMINI_API_KEY`, gọi Gemini batch một lần để hiệu chỉnh OCR theo ảnh crop.
+8. Parse text thành `parsedData.extractedData` và `parsedData.labData`.
 
 ## Yêu cầu
 
-- Python 3.10+ (khuyến nghị)
-- Model: `models/weights/best.pt`
-- Tesseract OCR: cài đặt và chỉnh đường dẫn trong `src/api/main.py` (mặc định `D:\HK2_4\DoAn\OCR\tesseract.exe`)
+- Python 3.10+.
+- Model YOLO: `models/weights/best.pt`.
+- Tesseract OCR 5.x và gói ngôn ngữ tiếng Việt `vie`.
+- Đường dẫn Tesseract cấu hình bằng biến môi trường `TESSERACT_CMD`.
+
+- Tùy chọn: cấu hình `GEMINI_API_KEY` trong file `.env` để bật Gemini validation.
 
 ## Cài đặt
 
 ```bash
 cd Project_OCR
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
 ## Chạy API
 
 ```bash
-uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --workers 1
+```
+
+Hoặc dùng Makefile:
+
+```bash
+make run
 ```
 
 - Swagger: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- Kiểm tra: `GET /health`
+- Kiểm tra trạng thái: `GET /health`
 
-## Endpoint chính
+## Endpoint
 
 | Method | Đường dẫn | Mô tả |
-|--------|-----------|--------|
-| `POST` | `/extract` | Upload ảnh, trả về `filename` + `result` (gom theo nhãn) |
-| `POST` | `/v1/ocr/upload` | Alias tương thích cũ, cùng hành vi với `/extract` |
+|--------|-----------|-------|
+| `GET` | `/health` | Kiểm tra model path, Tesseract path và trạng thái Gemini |
+| `POST` | `/v1/ocr/upload` | Upload ảnh bệnh án và nhận kết quả OCR |
+
+Định dạng ảnh hỗ trợ: `.jpg`, `.jpeg`, `.png`, `.bmp`, `.tif`, `.tiff`, `.webp`.
 
 ### Postman / client
 
 - Body: **form-data**
-- Key: `file` (kiểu **File**)
-- Chọn file ảnh (`.jpg`, `.jpeg`, `.png`, …)
+- Key: `file`
+- Type: **File**
+- URL: `http://127.0.0.1:8000/v1/ocr/upload`
 
-### Ví dụ phản hồi (rút gọn)
+### Ví dụ phản hồi rút gọn
 
 ```json
 {
   "filename": "mau.png",
   "result": {
-    "hospital_header": { "count": 1, "confidence_avg": 0.91, "text": "...", "boxes": [[...]] },
-    "patient_info": { ... },
-    "diagnosis_block": { ... },
-    "test_table": { ... },
-    "footer_signature": { ... }
+    "hospital_header": {
+      "count": 1,
+      "confidence_avg": 0.91,
+      "text": "BỆNH VIỆN ...",
+      "boxes": [[10, 20, 600, 120]]
+    },
+    "patient_info": {
+      "count": 1,
+      "confidence_avg": 0.88,
+      "text": "Họ tên: ...",
+      "boxes": [[...]]
+    },
+    "diagnosis_block": { "count": 1, "confidence_avg": 0.86, "text": "...", "boxes": [[...]] },
+    "test_table": { "count": 1, "confidence_avg": 0.9, "text": "WBC | 7.2 | K/uL | 4.0-10.0", "boxes": [[...]] },
+    "footer_signature": { "count": 1, "confidence_avg": 0.8, "text": "...", "boxes": [[...]] }
   },
-  "debug_output": {
-    "annotated": "outputs/yolo_regions/20260419_143022_mau_annotated.jpg",
-    "crops_dir": "outputs/yolo_regions/crops/20260419_143022_mau"
+  "parsedData": {
+    "extractedData": {
+      "hospital_name": "...",
+      "patient_name": "...",
+      "patient_dob": "1990-05-15",
+      "patient_gender": "Nam",
+      "diagnosis": "..."
+    },
+    "labData": [
+      {
+        "testName": "WBC",
+        "testValue": "7.2",
+        "unit": "K/uL",
+        "referenceRange": "4.0-10.0",
+        "isAbnormal": false
+      }
+    ]
   }
 }
 ```
 
-Trường `debug_output` chỉ có khi bật lưu ảnh debug (mặc định bật). Xem mục dưới.
-
-## Ảnh debug YOLO (phân vùng + crop)
-
-Sau mỗi request thành công, server có thể lưu:
-
-1. **`outputs/yolo_regions/<timestamp>_<tên_file>_annotated.jpg`** — ảnh gốc có vẽ khung bbox + nhãn + độ tin cậy.
-2. **`outputs/yolo_regions/crops/<timestamp>_<tên_file>/`** — từng vùng đã cắt (`00_label_conf.jpg`, …).
-
-Dùng để kiểm tra model có bao đúng vùng hay không trước khi tin vào OCR.
-
-### Tắt ghi file (ví dụ production)
-
-```bash
-set YOLO_DEBUG_SAVE=0
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000
-```
-
 ## Cấu trúc thư mục chính
 
-```
+```text
 Project_OCR/
 ├── models/
+│   ├── configs/
+│   │   └── args.yaml          # cấu hình train YOLO11n-OBB
 │   └── weights/
-│       └── best.pt
-├── outputs/
-│   └── yolo_regions/     # ảnh debug (annotated + crops), tạo khi gọi API
+│       └── best.pt            # trọng số model đang dùng
+├── outputs/                   # dữ liệu output/debug nếu có
 ├── src/
 │   ├── api/
-│   │   └── main.py
+│   │   └── main.py            # FastAPI app, endpoint upload
 │   ├── core/
-│   │   ├── detector.py   # MedicalDetector (YOLO)
-│   │   └── reader.py     # MedicalReader (Tesseract)
+│   │   ├── detector.py        # MedicalDetector, YOLO11n-OBB + crop OBB
+│   │   ├── reader_hybrid.py   # PaddleOCR + Tesseract fallback + Gemini
+│   │   ├── gemini_validator.py
+│   │   └── data_parser.py     # parse OCR text thành extractedData/labData
 │   └── utils/
-│       ├── image_processing.py
-│       └── yolo_debug.py
+│       └── image_processing.py
+├── Makefile
 ├── requirements.txt
 └── README.md
 ```
 
 ## Gợi ý tích hợp Spring Boot
 
-Gửi `multipart/form-data` với part tên `file` tới `http://<host>:8000/extract`, nhận JSON và map vào DTO tương ứng với object `result`.
+Gửi `multipart/form-data` với part tên `file` tới:
+
+```text
+http://<ai-service-host>:8000/v1/ocr/upload
+```
+
+Backend nên map:
+
+- `result`: text OCR theo từng vùng YOLO, kèm số lượng vùng, độ tin cậy trung bình và bbox.
+- `parsedData.extractedData`: thông tin bệnh viện, bệnh nhân, chẩn đoán, chữ ký.
+- `parsedData.labData`: danh sách chỉ số xét nghiệm đã parse.
 
 ## Ghi chú
 
-- Chất lượng OCR phụ thuộc ảnh (nét, nghiêng, ánh sáng) và cấu hình Tesseract.
-- Có thể tinh chỉnh tiền xử lý trong `src/utils/image_processing.py` và `MedicalReader`.
+- Chất lượng OCR phụ thuộc độ nét, ánh sáng, độ nghiêng và bố cục biểu mẫu.
+- Nếu không có `GEMINI_API_KEY`, hệ thống vẫn chạy và trả về kết quả OCR thô đã qua xử lý.
+- Nếu đổi vị trí cài Tesseract, cấu hình biến môi trường `TESSERACT_CMD`.
+
+## Deploy Docker
+
+Sao chép file env mẫu và cấu hình secret:
+
+```bash
+cp .env.example .env
+```
+
+Build và chạy container:
+
+```bash
+docker build -t project-ocr-api .
+docker run --rm -p 8000:8000 --env-file .env project-ocr-api
+```
+
+Trong production, nên đặt các biến môi trường sau:
+
+```env
+TESSERACT_CMD=/usr/bin/tesseract
+YOLO_MODEL_PATH=/app/models/weights/best.pt
+GEMINI_API_KEY=
+MAX_UPLOAD_MB=10
+```
+
+Lệnh chạy production không dùng `--reload`:
+
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --workers 1
+```
+
+## Deploy với domain `model.medicalocr-nthoa.io.vn`
+
+Nếu bạn deploy riêng service OCR này cho subdomain model, cấu hình thực tế nên là:
+
+1. Tạo `A record` cho `model.medicalocr-nthoa.io.vn` trỏ về public IP của VPS.
+2. Chạy container bằng `docker compose -f docker-compose.prod.yml up -d --build`.
+3. Đặt reverse proxy Nginx trỏ `model.medicalocr-nthoa.io.vn` về `127.0.0.1:8000` hoặc port container.
+4. Nếu FE gọi trực tiếp API từ browser, thêm `https://medicalocr-nthoa.io.vn` vào `CORS_ORIGINS`.
+
+Ví dụ file production compose của service model nằm ở [docker-compose.prod.yml](docker-compose.prod.yml).
