@@ -161,7 +161,6 @@ def _is_abnormal(value_str: Optional[str], ref_range: Optional[str]) -> bool:
     return False
 
 
-# ─── MedicalRecordParser ─────────────────────────────────────────────────────
 
 class MedicalRecordParser:
     """
@@ -188,6 +187,7 @@ class MedicalRecordParser:
         ("name", r"Họ\s*(?:và\s*)?tên"),
         ("dob", r"Ngày\s*sinh|Năm\s*sinh"),
         ("gender", r"Giới\s*tính|Ciới\s*tính"),
+        ("phone", r"Điện\s*thoại|Dien\s*thoai|SĐT|SDT"),
         ("address", r"Địa\s*chỉ|Dịa\s*chỉ"),
         ("bhyt", r"(?:Số\s*thẻ\s*)?BHYT|Thẻ\s*bảo\s*hiểm\s*y\s*tế"),
         ("table_marker", r"Trị\s*số|TÊN\s*XÉT\s*NGHIỆM|Kết\s*quả"),
@@ -254,6 +254,14 @@ class MedicalRecordParser:
         value = re.sub(r"\s*\|\s*", " ", value)
         value = re.sub(r"\s+", " ", value).strip(" .;,:|")
         return value or None
+
+    @staticmethod
+    def _clean_phone_value(value: Optional[str]) -> Optional[str]:
+        if not value:
+            return None
+        value = value.replace("O", "0").replace("o", "0")
+        phone = re.sub(r"\D+", "", value)
+        return phone or None
 
     @staticmethod
     def _clean_diagnosis_value(value: Optional[str]) -> Optional[str]:
@@ -378,6 +386,8 @@ class MedicalRecordParser:
         if normalizer == "compact":
             compact = re.sub(r"\s+", "", value)
             return compact or None
+        if normalizer == "phone":
+            return MedicalRecordParser._clean_phone_value(value)
         if normalizer == "diagnosis":
             return MedicalRecordParser._clean_diagnosis_value(value)
         return value
@@ -453,8 +463,11 @@ class MedicalRecordParser:
         h = self._parse_hospital(_strip(ocr_data.get("hospital_header")))
         h = self._merge_missing(h, self._parse_hospital(combined))
 
-        p = self._parse_patient(_strip(ocr_data.get("patient_info")))
-        p = self._merge_missing(p, self._parse_patient(combined))
+        patient_text = _strip(ocr_data.get("patient_info"))
+        p = self._parse_patient(patient_text)
+        patient_fallback = self._parse_patient(combined)
+        patient_fallback["phone"] = None
+        p = self._merge_missing(p, patient_fallback)
         if p.get("name") and not _is_plausible_person_name(p.get("name")):
             p["name"] = None
 
@@ -472,6 +485,7 @@ class MedicalRecordParser:
             "patient_name":        p.get("name"),
             "patient_dob":         p.get("dob"),
             "patient_gender":      p.get("gender"),
+            "patient_phone":       p.get("phone"),
             "patient_address":     p.get("address"),
             "patient_bhyt":        p.get("bhyt"),
             "diagnosis":           d.get("diagnosis"),
@@ -620,7 +634,7 @@ class MedicalRecordParser:
     def _parse_patient(self, text: str) -> Dict[str, Optional[str]]:
         res: Dict[str, Optional[str]] = {
             "name": None, "dob": None, "gender": None,
-            "address": None, "bhyt": None,
+            "phone": None, "address": None, "bhyt": None,
         }
         if not text:
             return res
@@ -657,6 +671,10 @@ class MedicalRecordParser:
             raw_dob = m.group(1) if m else None
         res["dob"]     = _normalize_dob(raw_dob)
         res["gender"]  = _normalize_gender(values.get("gender"))
+        res["phone"]   = self._clean_phone_value(values.get("phone"))
+        if not res["phone"]:
+            phone_m = self._PH_PHONE.search(text)
+            res["phone"] = self._clean_phone_value(phone_m.group(1)) if phone_m else None
         res["address"] = values.get("address")
         if not res["address"] and raw_dob:
             before_dob = text.split(raw_dob, 1)[0]

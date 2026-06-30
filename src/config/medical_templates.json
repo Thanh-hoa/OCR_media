@@ -143,6 +143,12 @@
           "normalizer": "gender",
           "stop_labels": ["Điện thoại", "Địa chỉ", "Thẻ bảo hiểm y tế"]
         },
+        "patient_phone": {
+          "region": "patient_info",
+          "labels": ["Điện thoại", "SĐT", "SDT"],
+          "normalizer": "phone",
+          "stop_labels": ["Năm sinh", "Ngày sinh", "Địa chỉ", "Thẻ bảo hiểm y tế", "BHYT"]
+        },
         "patient_address": {
           "region": "patient_info",
           "labels": ["Địa chỉ"],
