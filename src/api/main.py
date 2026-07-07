@@ -9,12 +9,15 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from src.core.data_parser import MedicalRecordParser
 from src.core.detector import MedicalDetector
+from src.core.exceptions import AppException
 from src.core.reader_hybrid import HybridReader
+from src.i18n.message_translator import message_translator
 from src.utils.image_processing import deskew_image
 
 
@@ -52,6 +55,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(AppException)
+async def handle_app_exception(request: Request, exc: AppException) -> JSONResponse:
+    locale = message_translator.resolve_locale(request.headers.get("accept-language"))
+    message = message_translator.get_message(exc.message_key, locale=locale, **exc.params)
+    return JSONResponse(status_code=exc.status_code, content={"isError": True, "message": message})
 
 PROJECT_ROOT = project_root
 YOLO_MODEL_PATH = Path(
@@ -106,28 +116,27 @@ async def upload_and_ocr(file: UploadFile = File(...)) -> Dict[str, Any]:
     filename = file.filename or "uploaded_file"
     ext = Path(filename).suffix.lower()
     if ext and ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Định dạng file không được hỗ trợ. "
-                "Hãy dùng: .jpg, .jpeg, .png, .bmp, .tif, .tiff, .webp"
-            ),
+        raise AppException(
+            "upload.unsupported_format",
+            params={"allowed": ", ".join(sorted(ALLOWED_EXTENSIONS))},
         )
 
     try:
         file_bytes = await file.read()
         if not file_bytes:
-            raise ValueError("File rỗng. Hãy chọn một ảnh hợp lệ.")
+            raise AppException("upload.empty_file")
         if len(file_bytes) > MAX_UPLOAD_BYTES:
-            raise ValueError(f"File quá lớn. Giới hạn hiện tại: {MAX_UPLOAD_MB} MB.")
+            raise AppException("upload.file_too_large", params={"max_mb": MAX_UPLOAD_MB})
         image_bgr = MedicalDetector.decode_image_bytes(file_bytes)
         image_bgr = deskew_image(image_bgr)
         logger.info(f"Processing file: {filename}")
         detections = detector.detect(image_bgr)
         logger.info(f"Detected {len(detections)} regions")
+    except AppException:
+        raise
     except Exception as exc:  # noqa: BLE001
         logger.error(f"Image processing error: {exc}")
-        raise HTTPException(status_code=400, detail=f"Lỗi xử lý ảnh: {exc}") from exc
+        raise AppException("upload.processing_error", params={"error": str(exc)}) from exc
 
     # Bước 1: OCR song song (không Gemini) — nhanh
     async def _ocr_one(item):
