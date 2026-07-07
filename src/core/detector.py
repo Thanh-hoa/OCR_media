@@ -8,6 +8,9 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
+from src.core.exceptions import AppException
+from src.i18n.message_translator import message_translator
+
 
 @dataclass
 class DetectionItem:
@@ -35,7 +38,9 @@ class MedicalDetector:
     ) -> None:
         model_file = Path(model_path)
         if not model_file.exists():
-            raise FileNotFoundError(f"Không tìm thấy mô hình tại: {model_file}")
+            raise FileNotFoundError(
+                message_translator.get_message("model.not_found", path=str(model_file))
+            )
 
         self.model = YOLO(str(model_file))
         self.conf_threshold = conf_threshold
@@ -44,7 +49,7 @@ class MedicalDetector:
 
     def detect(self, image_bgr: np.ndarray) -> List[DetectionItem]:
         if image_bgr is None or image_bgr.size == 0:
-            raise ValueError("Ảnh đầu vào không hợp lệ.")
+            raise AppException("image.invalid")
 
         results = self.model.predict(
             image_bgr,
@@ -112,7 +117,7 @@ class MedicalDetector:
         image_array = np.frombuffer(file_bytes, dtype=np.uint8)
         image_bgr = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
         if image_bgr is None:
-            raise ValueError("Không thể giải mã ảnh. Hãy kiểm tra tệp tải lên.")
+            raise AppException("image.decode_failed")
         return image_bgr
 
     @staticmethod

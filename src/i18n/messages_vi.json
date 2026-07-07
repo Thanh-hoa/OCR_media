@@ -1,0 +1,17 @@
+{
+  "image.invalid": "Ảnh đầu vào không hợp lệ.",
+  "image.decode_failed": "Không thể giải mã ảnh. Hãy kiểm tra tệp tải lên.",
+
+  "upload.unsupported_format": "Định dạng file không được hỗ trợ. Hãy dùng: {allowed}",
+  "upload.empty_file": "File rỗng. Hãy chọn một ảnh hợp lệ.",
+  "upload.file_too_large": "File quá lớn. Giới hạn hiện tại: {max_mb} MB.",
+  "upload.processing_error": "Lỗi xử lý ảnh: {error}",
+
+  "model.not_found": "Không tìm thấy mô hình tại: {path}",
+
+  "tesseract.empty_cmd": "Đường dẫn Tesseract đang trống.",
+  "tesseract.not_found": "Không tìm thấy Tesseract tại: {path}",
+  "tesseract.not_found_in_path": "Không tìm thấy lệnh Tesseract trong PATH: {cmd}",
+
+  "gemini.api_key_missing": "GEMINI_API_KEY không được set. Hãy set environment variable hoặc pass api_key directly."
+}

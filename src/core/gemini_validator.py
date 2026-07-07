@@ -8,6 +8,8 @@ import logging
 import cv2
 import numpy as np
 
+from src.i18n.message_translator import message_translator
+
 logger = logging.getLogger(__name__)
 
 GEMINI_MODEL = "gemini-2.5-flash"
@@ -19,10 +21,7 @@ class GeminiValidator:
     def __init__(self, api_key: Optional[str] = None, timeout: int = 30):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         if not self.api_key:
-            raise ValueError(
-                "GEMINI_API_KEY không được set. "
-                "Hãy set environment variable hoặc pass api_key directly."
-            )
+            raise ValueError(message_translator.get_message("gemini.api_key_missing"))
         self.timeout = timeout
         self._client = None
 

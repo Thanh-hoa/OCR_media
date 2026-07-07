@@ -23,6 +23,7 @@ from paddleocr import PaddleOCR
 import pytesseract
 
 from src.core.gemini_validator import GeminiValidator
+from src.i18n.message_translator import message_translator
 from src.utils.image_processing import preprocess_for_ocr
 
 logger = logging.getLogger(__name__)
@@ -96,19 +97,23 @@ class HybridReader:
     def _resolve_tesseract_cmd(tesseract_cmd: str) -> str:
         cmd = str(tesseract_cmd).strip()
         if not cmd:
-            raise FileNotFoundError("Tesseract command is empty.")
+            raise FileNotFoundError(message_translator.get_message("tesseract.empty_cmd"))
 
         cmd_path = Path(cmd)
         has_path_separator = any(separator in cmd for separator in ("\\", "/"))
         if has_path_separator or cmd_path.is_absolute():
             if cmd_path.exists():
                 return str(cmd_path)
-            raise FileNotFoundError(f"Tesseract not found: {cmd_path}")
+            raise FileNotFoundError(
+                message_translator.get_message("tesseract.not_found", path=str(cmd_path))
+            )
 
         resolved = shutil.which(cmd)
         if resolved:
             return resolved
-        raise FileNotFoundError(f"Tesseract command not found in PATH: {cmd}")
+        raise FileNotFoundError(
+            message_translator.get_message("tesseract.not_found_in_path", cmd=cmd)
+        )
 
     def read_paddle_only(self, image_bgr: np.ndarray, label: Optional[str] = None) -> str:
         """Cấu hình 2: PaddleOCR only, không fallback, không Gemini."""
